@@ -1,0 +1,1557 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Espresso" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+  <title>Espresso Tracker — Minimal SaaS Prototype</title>
+  <style>
+    :root{
+      --bg:#fafafa;
+      --panel:#ffffff;
+      --text:#111;
+      --muted:#666;
+      --faint:#8a8a8a;
+      --line:#e9e9e9;
+      --line2:#f1f1f1;
+      --hover:#f6f6f6;
+      --chip:#efefef;
+      --danger:#c62f2f;
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:var(--bg);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    button, input, select, textarea { font-family: inherit; }
+    a{color:inherit}
+    .app{
+      display:grid;
+      grid-template-columns: 280px 1fr 340px;
+      height:100vh;
+      overflow:hidden;
+    }
+    .sidebar{
+      border-right:1px solid var(--line);
+      background:linear-gradient(#fbfbfb, #f9f9f9);
+      padding:18px 14px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .brand{display:flex;align-items:center;gap:10px;padding:10px 10px 14px;}
+    .dot{width:10px;height:10px;border-radius:50%;background:#111;}
+    .brand h1{font-size:14px;letter-spacing:.2px;margin:0;font-weight:650;}
+    .brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+    .brandStack{display:flex;flex-direction:column}
+    .sbSection{margin-top:14px;padding:0 6px;}
+    .sbLabel{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;margin:10px 6px;}
+    .sbBtn{
+      width:100%;text-align:left;background:transparent;border:1px solid transparent;
+      padding:10px 10px;border-radius:10px;cursor:pointer;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text);
+    }
+    .sbBtn:hover{background:var(--hover);}
+    .sbBtn.active{background:#f1f1f1;border-color:#ededed;}
+    .sbBtn .left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .sbIcon{width:18px;height:18px;display:grid;place-items:center;opacity:.9;flex:0 0 auto;}
+    .sbText{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .sbMeta{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto;}
+    .sbSub{font-size:11px;color:var(--muted);margin-left:28px;margin-top:-6px;}
+    .newShot{
+      margin:10px 6px 0;width:calc(100% - 12px);
+      padding:11px 12px;border-radius:12px;border:1px solid #e7e7e7;background:#fff;
+      cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;
+    }
+    .newShot:hover{background:#fdfdfd;}
+    .hint{margin:10px 12px 0;color:var(--muted);font-size:12px;line-height:1.35;}
+    .main{overflow:auto;padding:18px 18px 120px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .header{
+      display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+      padding:6px 6px 14px;position:sticky;top:0;
+      background:linear-gradient(var(--bg) 75%, rgba(250,250,250,0));z-index:5;
+    }
+    .titleBlock h2{margin:0;font-size:24px;font-weight:720;letter-spacing:-.02em;}
+    .titleBlock p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.3;}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
+    .field{
+      display:flex;align-items:center;gap:8px;background:var(--panel);
+      border:1px solid var(--line);border-radius:12px;padding:8px 10px;height:38px;
+    }
+    .field input,.field select{border:none;outline:none;background:transparent;font-size:13px;color:var(--text);min-width:120px;}
+    .field input[type="date"]{min-width:140px;}
+    .field .pill{font-size:12px;color:var(--muted);white-space:nowrap;}
+    .btn{
+      height:38px;padding:0 12px;border-radius:12px;border:1px solid var(--line);
+      background:var(--panel);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;
+    }
+    .btn:hover{background:var(--hover);}
+    .btn.ghost{background:transparent;border-color:transparent;}
+    .btn.danger{border-color:#f0d7d7;color:var(--danger);background:#fff;}
+    .btn.danger:hover{background:#fff5f5;}
+    .tableWrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+    .tableScroll{overflow:auto;max-height:56vh;-webkit-overflow-scrolling:touch;}
+    @media (max-width:980px){.tableScroll{max-height:none;}}
+
+    .tableTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line2);background:#fcfcfc;}
+    .tableTop .small{color:var(--muted);font-size:12px;}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:1180px;}
+    /* Frozen columns (Notion-style) */
+    .freeze-col{position:sticky;background:#fff;z-index:2;}
+    thead .freeze-col{z-index:6;background:#fcfcfc;}
+    .col-date{width:150px;min-width:150px;left:0;}
+    .col-bean{width:280px;min-width:280px;left:150px;}
+    .col-bean::after{content:"";position:absolute;top:0;right:-1px;width:1px;height:100%;background:rgba(0,0,0,0.07);}
+    /* Subtle grayscale result tags */
+    .tag{background:#f5f5f5;border-color:#e7e7e7;color:#222;}
+    .tag[data-tag="Good"]{background:#f2f2f2;border-color:#e5e5e5;}
+    .tag[data-tag="Too Tight"]{background:#ededed;border-color:#e2e2e2;}
+    .tag[data-tag="Too Fast"]{background:#ededed;border-color:#e2e2e2;}
+    .tag[data-tag="Watery"]{background:#eeeeee;border-color:#e3e3e3;}
+    .tag[data-tag="Sour"]{background:#ececec;border-color:#e1e1e1;}
+    .tag[data-tag="Bitter"]{background:#ebebeb;border-color:#e0e0e0;}
+    @media (max-width:720px){
+      .freeze-col{position:static;}
+      table{min-width:0;}
+    }
+    thead th{
+      position:sticky;top:0;background:#fcfcfc;z-index:4;text-align:left;
+      font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;
+      padding:10px 10px;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none;
+    }
+    thead th .sort{font-size:11px;margin-left:6px;color:#999;}
+    tbody td{padding:10px 10px;border-bottom:1px solid var(--line2);vertical-align:top;max-width:220px;}
+    tbody tr:hover{background:var(--hover);}
+    tbody tr.selected{background:#f2f2f2;}
+    /* Spacer row prevents sticky header from overlapping first visible row */
+    .spacerRow td{
+      padding:0 !important;
+      border-bottom:none !important;
+      height:0px;
+      background:transparent !important;
+    }
+    td .cell{
+      outline:none;border-radius:8px;padding:4px 6px;margin:-4px -6px;min-height:22px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      touch-action: pan-y;
+    }
+    td .cell.editable:hover{background:#f3f3f3;}
+    td .cell:focus{background:#f1f1f1;box-shadow:0 0 0 2px rgba(0,0,0,.05) inset;}
+    .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid #e7e7e7;padding:3px 8px;border-radius:999px;font-size:12px;color:#222;white-space:nowrap;}
+    .tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;border:1px solid #e7e7e7;background:#f5f5f5;font-size:12px;white-space:nowrap;}
+    .rowActions{opacity:0;display:flex;gap:8px;justify-content:flex-end;}
+    tbody tr:hover .rowActions{opacity:1;}
+    .iconBtn{border:none;background:transparent;cursor:pointer;padding:6px;border-radius:10px;}
+    .iconBtn:hover{background:#eee;}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+    .insights{margin-top:14px;display:grid;grid-template-columns:1fr;gap:12px;}
+    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;}
+    .kpiLabel{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;}
+    .kpiValue{margin-top:8px;font-size:18px;font-weight:700;letter-spacing:-.01em;}
+    .kpiSub{margin-top:4px;font-size:12px;color:var(--muted);}
+    .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .chartTitle{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+    .chartTitle h3{margin:0;font-size:13px;font-weight:650;}
+    .chartTitle span{font-size:12px;color:var(--muted);}
+    canvas{width:100%;height:220px;border:1px solid var(--line2);border-radius:12px;background:#fcfcfc;}
+    .baselineList{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;}
+    .baselineItem{display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--line2);border-radius:12px;background:#fcfcfc;}
+    .baselineItem .left{display:flex;flex-direction:column;gap:3px;min-width:0;}
+    .baselineItem .name{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .baselineItem .meta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .drawer{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px 14px 120px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .drawerHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
+    .drawerHeader h3{margin:0;font-size:14px;font-weight:720;}
+    .drawerHeader p{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.35;}
+    .drawerEmpty{color:var(--muted);font-size:13px;line-height:1.5;padding:14px 6px;}
+    .drawerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .drawerGrid .full{grid-column:1/-1;}
+    .fRow{display:flex;flex-direction:column;gap:6px;}
+    .fRow label{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;}
+    .fRow input,.fRow select,.fRow textarea{border:1px solid var(--line);border-radius:12px;padding:10px;font-size:13px;outline:none;background:#fff;}
+    .fRow textarea{min-height:86px;resize:vertical;}
+    .drawerActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .suggest{margin-top:14px;border-top:1px solid var(--line2);padding-top:12px;}
+    .suggest h4{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);}
+    .suggest ul{margin:0;padding-left:18px;font-size:13px;line-height:1.4;}
+    .photoBlock{display:flex;flex-direction:column;gap:8px;}
+    .photoPreview{width:100%;aspect-ratio:16/10;border:1px dashed #e3e3e3;border-radius:14px;display:grid;place-items:center;overflow:hidden;background:#fbfbfb;color:var(--muted);font-size:12px;}
+    .photoPreview img{width:100%;height:100%;object-fit:cover;}
+    .tinyNote{font-size:12px;color:var(--muted);line-height:1.35;}
+    .modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50;padding:18px;}
+    .modal{max-width:920px;margin:4vh auto;background:var(--panel);border-radius:18px;border:1px solid #e7e7e7;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.25);}
+    .modalHead{padding:14px;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fcfcfc;}
+    .modalHead h3{margin:0;font-size:14px;font-weight:720;}
+    .modalBody{padding:14px;max-height:72vh;overflow:auto;}
+    .modalGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+    .modalGrid .span2{grid-column:span 2;}
+    .modalGrid .full{grid-column:1/-1;}
+    @media (max-width:980px){
+      .app{grid-template-columns:1fr;}
+      .sidebar{display:none;}
+      .drawer{display:none;}
+      thead th{top:64px;}
+      .kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .charts{grid-template-columns:1fr;}
+    }
+    @media (max-width:720px){
+      .modalGrid{grid-template-columns:1fr;}
+      .modalGrid .span2{grid-column:1/-1;}
+      table,thead,tbody,th,td,tr{display:block;}
+      thead{display:none;}
+      tbody tr{border-bottom:1px solid var(--line2);padding:10px;}
+      tbody td{border:none;padding:6px 0;max-width:none;}
+      tbody td[data-label]::before{
+        content:attr(data-label);display:block;font-size:11px;color:var(--faint);
+        text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;
+      }
+      .rowActions{opacity:1;justify-content:flex-start;margin-top:6px;}
+      td .cell{white-space:normal;overflow:visible;text-overflow:clip;}
+      .tableTop{flex-direction:column;align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="brand">
+        <div class="dot" aria-hidden="true"></div>
+        <div class="brandStack">
+          <h1>Espresso Tracker</h1>
+          <div class="sub">Offline prototype · localStorage</div>
+        </div>
+      </div>
+
+      <button class="newShot" id="btnNewShot"><span aria-hidden="true">＋</span><span>New Shot</span></button>
+      <div class="hint">Tip: Press <span class="mono">N</span> to add a shot. Press <span class="mono">/</span> to search.</div>
+
+      <div class="sbSection">
+        <div class="sbLabel">Saved views</div>
+        <button class="sbBtn active" data-view="all">
+          <span class="left"><span class="sbIcon">≡</span><span class="sbText">All Shots</span></span>
+          <span class="sbMeta" id="metaAll">0</span>
+        </button>
+        <div>
+        <button class="sbBtn" data-view="today">
+          <span class="left"><span class="sbIcon">⟡</span><span class="sbText">Today</span></span>
+          <span class="sbMeta" id="metaToday">0</span>
+        </button>
+        <div class="sbSub" id="todaySub">—</div>
+        </div>
+        <button class="sbBtn" data-view="week">
+          <span class="left"><span class="sbIcon">↺</span><span class="sbText">This Week</span></span>
+          <span class="sbMeta" id="metaWeek">0</span>
+        </button>
+        <button class="sbBtn" data-view="month">
+          <span class="left"><span class="sbIcon">◷</span><span class="sbText">This Month</span></span>
+          <span class="sbMeta" id="metaMonth">0</span>
+        </button>
+        <button class="sbBtn" data-view="byBean"><span class="left"><span class="sbIcon">☰</span><span class="sbText">By Bean</span></span><span class="sbMeta">⇅</span></button>
+        <button class="sbBtn" data-view="byGrind"><span class="left"><span class="sbIcon">⌁</span><span class="sbText">By Grind Setting</span></span><span class="sbMeta">⇅</span></button>
+        <button class="sbBtn" data-view="recipes">
+          <span class="left"><span class="sbIcon">✳</span><span class="sbText">Recipes (Baselines)</span></span>
+          <span class="sbMeta" id="metaRecipes">0</span>
+        </button>
+        <button class="sbBtn" data-view="baselineDiff">
+          <span class="left"><span class="sbIcon">≍</span><span class="sbText">Baseline Diff</span></span>
+          <span class="sbMeta" id="metaBaselineDiff">0</span>
+        </button>
+        <button class="sbBtn" data-view="issues">
+          <span class="left"><span class="sbIcon">!</span><span class="sbText">Issues</span></span>
+          <span class="sbMeta" id="metaIssues">0</span>
+        </button>
+      </div>
+
+      <div class="sbSection">
+        <div class="sbLabel">Issue filters</div>
+        <button class="sbBtn" data-view="issue_tooTight"><span class="left"><span class="sbIcon">⟂</span><span class="sbText">Too Tight</span></span><span class="sbMeta" id="metaTight">0</span></button>
+        <button class="sbBtn" data-view="issue_tooFast"><span class="left"><span class="sbIcon">→</span><span class="sbText">Too Fast</span></span><span class="sbMeta" id="metaFast">0</span></button>
+        <button class="sbBtn" data-view="issue_watery"><span class="left"><span class="sbIcon">≈</span><span class="sbText">Watery</span></span><span class="sbMeta" id="metaWatery">0</span></button>
+        <button class="sbBtn" data-view="issue_sour"><span class="left"><span class="sbIcon">∿</span><span class="sbText">Sour</span></span><span class="sbMeta" id="metaSour">0</span></button>
+        <button class="sbBtn" data-view="issue_bitter"><span class="left"><span class="sbIcon">∷</span><span class="sbText">Bitter</span></span><span class="sbMeta" id="metaBitter">0</span></button>
+      </div>
+    </aside>
+
+    <main class="main" aria-label="Main">
+      <div class="header">
+        <div class="titleBlock">
+          <h2 contenteditable="true" id="pageTitle" class="cell editable" style="display:inline-block;padding:4px 6px;margin:-4px -6px;border-radius:10px;">Espresso Tracker</h2>
+          <p>Log daily shots fast. Click any row to review details, clone baselines, and see dial-in suggestions.</p>
+        </div>
+
+        <div class="controls">
+          <div class="field" title="Date selector"><span class="pill">Date</span><input type="date" id="datePicker" /></div>
+          <div class="field" style="min-width:260px" title="Search (bean, notes, grind)"><span class="pill">Search</span><input id="searchInput" placeholder="Bean, grind, notes…" /></div>
+          <button class="btn" id="btnFilter" title="Filter view"><span aria-hidden="true">⎚</span><span>Filter</span></button>
+          <button class="btn" id="btnSort" title="Sort"><span aria-hidden="true">⇅</span><span>Sort</span></button>
+          <button class="btn" id="btnExport" title="Export data"><span aria-hidden="true">⤓</span><span>Export</span></button>
+          <button class="btn" id="btnImport" title="Import data"><span aria-hidden="true">⤒</span><span>Import</span></button>
+        </div>
+      </div>
+
+      <section class="tableWrap" aria-label="Shots table">
+        <div class="tableTop">
+          <div>
+            <div style="font-weight:650;font-size:13px;">Shots</div>
+            <div class="small" id="tableMeta">0 entries · view: All Shots</div>
+            <div class="small" id="sortMeta" style="margin-top:2px;">Sorted by: Date (newest first)</div>
+          </div>
+          <div class="small">Today shows only shots pulled on this date. Click a row to open details.</div>
+        </div>
+
+        <div class="tableScroll" id="tableScroll">
+        <table id="shotsTable">
+          <thead>
+            <tr>
+              <th class="freeze-col col-date" data-sort="date">Date <span class="sort" id="sort_date"></span></th>
+              <th class="freeze-col col-bean" data-sort="bean">Coffee / Bean <span class="sort" id="sort_bean"></span></th>
+              <th data-sort="origin">Origin/Roaster <span class="sort" id="sort_origin"></span></th>
+              <th data-sort="roast">Roast <span class="sort" id="sort_roast"></span></th>
+              <th data-sort="method">Method <span class="sort" id="sort_method"></span></th>
+              <th data-sort="grinder">Grinder <span class="sort" id="sort_grinder"></span></th>
+              <th data-sort="grindSetting">Grind <span class="sort" id="sort_grindSetting"></span></th>
+              <th data-sort="dose">Dose (g) <span class="sort" id="sort_dose"></span></th>
+              <th data-sort="yieldValue">Yield <span class="sort" id="sort_yieldValue"></span></th>
+              <th data-sort="timeSec">Time (s) <span class="sort" id="sort_timeSec"></span></th>
+              <th data-sort="ratio">Ratio <span class="sort" id="sort_ratio"></span></th>
+              <th data-sort="resultTag">Result <span class="sort" id="sort_resultTag"></span></th>
+              <th data-sort="baselineDelta" title="Delta vs baseline for this bean">Δ vs baseline</th>
+              <th style="width:80px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="shotsTbody"></tbody>
+        </table>
+        </div>
+      </section>
+
+      <section class="insights" aria-label="Insights">
+        <div class="kpis">
+          <div class="card"><div class="kpiLabel">Avg dose</div><div class="kpiValue" id="kpiDose">—</div><div class="kpiSub">Based on current view</div></div>
+          <div class="card"><div class="kpiLabel">Avg yield</div><div class="kpiValue" id="kpiYield">—</div><div class="kpiSub">Based on current view</div></div>
+          <div class="card"><div class="kpiLabel">Avg time</div><div class="kpiValue" id="kpiTime">—</div><div class="kpiSub">Based on current view</div></div>
+          <div class="card"><div class="kpiLabel">Avg ratio</div><div class="kpiValue" id="kpiRatio">—</div><div class="kpiSub">Yield ÷ Dose</div></div>
+        </div>
+
+
+        <div class="baselinesRow">
+          <div class="card baselinesCard">
+            <div class="chartTitle" style="margin-bottom:10px;">
+              <h3>Best known baseline per bean</h3>
+              <span class="mono">Most recent “Good”</span>
+            </div>
+            <div class="baselineList" id="baselineList"></div>
+          </div>
+        </div>
+
+        <div class="charts">
+
+          <div class="card">
+            <div class="chartTitle"><h3>Time vs Grind Setting</h3><span class="mono" id="chartMeta1">—</span></div>
+            <canvas id="chartTimeVsGrind" width="900" height="320"></canvas>
+          </div>
+          <div class="card">
+            <div class="chartTitle"><h3>Ratio vs Result Tag</h3><span class="mono" id="chartMeta2">—</span></div>
+            <canvas id="chartRatioVsResult" width="900" height="320"></canvas>
+          </div>
+          <div class="card" style="grid-column:1/-1;">
+            <div class="chartTitle"><h3>Shots per Bean (This Week)</h3><span class="mono" id="chartMeta3">—</span></div>
+            <canvas id="chartShotsPerBean" width="1200" height="320"></canvas>
+</div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="drawer" aria-label="Detail drawer">
+      <div class="drawerHeader">
+        <div><h3>Shot details</h3><p>Click a row to inspect, clone, or mark as baseline.</p></div>
+        <button class="btn ghost" id="btnClearSelection">Clear</button>
+      </div>
+
+      <div id="drawerEmpty" class="drawerEmpty">
+        Select a shot to see details here.<br><br>
+        <span class="tinyNote">Keyboard: <span class="mono">N</span> new shot · <span class="mono">/</span> search · <span class="mono">Esc</span> close modal</span>
+      </div>
+
+      <div id="drawerContent" style="display:none;">
+        <div class="drawerGrid" id="drawerForm"></div>
+
+        <div class="photoBlock" style="margin-top:12px;">
+          <div class="fRow full"><label>Photo (optional)</label><input type="file" id="drawerPhotoInput" accept="image/*" /></div>
+          <div class="photoPreview" id="photoPreview"><span>No photo attached</span></div>
+          <div class="tinyNote">Stored as a compressed image in localStorage (prototype). Keep it small.</div>
+        </div>
+
+        <div class="drawerActions">
+          <button class="btn" id="btnSaveDrawer">Save</button>
+          <button class="btn" id="btnClone">Clone shot</button>
+          <button class="btn" id="btnBaseline">Mark as baseline</button>
+          <button class="btn danger" id="btnDelete">Delete</button>
+        </div>
+
+        <div class="suggest">
+          <h4>Adjust suggestions</h4>
+          <ul id="suggestList"></ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true" aria-label="New shot modal">
+    <div class="modal">
+      <div class="modalHead">
+        <h3>New shot</h3>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="tinyNote">Fast add · mobile-friendly</span>
+          <button class="btn ghost" id="btnCloseModal">✕</button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <form id="newShotForm">
+          <div class="modalGrid">
+            <div class="fRow"><label>Date</label><input type="date" name="date" required /></div>
+            <div class="fRow span2"><label>Coffee / Bean Name</label><input name="bean" placeholder="e.g., Mt. Apo Medium Roast" required /></div>
+
+            <div class="fRow"><label>Origin / Roaster</label><input name="origin" placeholder="Optional" /></div>
+            <div class="fRow"><label>Roast Level</label><select name="roast"><option value="med">med</option><option value="light">light</option><option value="dark">dark</option></select></div>
+            <div class="fRow"><label>Brew Method</label><select name="method"><option value="Espresso">Espresso</option><option value="Ristretto">Ristretto</option><option value="Lungo">Lungo</option></select></div>
+
+            <div class="fRow"><label>Grinder</label><input name="grinder" placeholder="e.g., Starseeker" /></div>
+            <div class="fRow"><label>Grind Setting</label><input name="grindSetting" type="number" step="1" placeholder="e.g., 30" /></div>
+            <div class="fRow"><label>Dose (g)</label><input name="dose" type="number" step="0.1" placeholder="e.g., 18" required /></div>
+
+            <div class="fRow"><label>Yield unit</label><select name="yieldUnit"><option value="g">g</option><option value="ml">ml</option></select></div>
+            <div class="fRow"><label>Yield value</label><input name="yieldValue" type="number" step="0.1" placeholder="e.g., 36" required /></div>
+            <div class="fRow"><label>Time (s)</label><input name="timeSec" type="number" step="1" placeholder="e.g., 30" required /></div>
+
+            <div class="fRow"><label>Temp (°C)</label><input name="temp" type="number" step="0.1" placeholder="Optional" /></div>
+            <div class="fRow"><label>Pressure (bar)</label><input name="pressure" type="number" step="0.1" placeholder="Optional" /></div>
+            <div class="fRow"><label>Pre-infusion (s)</label><input name="preinfusion" type="number" step="1" placeholder="Optional" /></div>
+
+            <div class="fRow"><label>Result Tag</label><select name="resultTag"><option value="Good">Good</option><option value="Too Tight">Too Tight</option><option value="Too Fast">Too Fast</option><option value="Watery">Watery</option><option value="Sour">Sour</option><option value="Bitter">Bitter</option></select></div>
+            <div class="fRow span2"><label>Taste Notes</label><input name="tasteNotes" placeholder="Short notes (e.g., chocolatey, clean, sharp)" /></div>
+
+            <div class="fRow full"><label>Notes</label><textarea name="notes" placeholder="Long notes… (puck prep, tamp, channeling, etc.)"></textarea></div>
+
+            <div class="fRow full" style="display:flex;flex-direction:row;justify-content:flex-end;gap:10px;margin-top:6px;">
+              <button type="button" class="btn" id="btnSeedReset">Reset Sample Data</button>
+              <button type="submit" class="btn" style="font-weight:700;">Add Shot</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // PWA: register service worker (offline app shell)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
+  }
+</script>
+
+
+<script>
+(() => {
+  const STORAGE_KEY = "espresso_tracker_v1";
+  const SETTINGS_KEY = "espresso_tracker_settings_v1";
+  const RESULT_TAGS = ["Good","Too Tight","Too Fast","Watery","Sour","Bitter"];
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const uid = () => Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+
+  function todayISO() {
+    const d = new Date();
+    const tz = d.getTimezoneOffset()*60000;
+    return new Date(d.getTime() - tz).toISOString().slice(0,10);
+  }
+  const safeText = (x)=> (x ?? "").toString().trim();
+  const parseNum = (x)=> { const n = Number(x); return Number.isFinite(n) ? n : null; };
+  const fmt = (n,d=1)=> (n==null || !Number.isFinite(n)) ? "—" : n.toFixed(d);
+
+  function startOfWeekISO(dISO) {
+    const d = new Date(dISO + "T00:00:00");
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0,10);
+  }
+  function endOfWeekISO(dISO) {
+    const s = new Date(startOfWeekISO(dISO) + "T00:00:00");
+    s.setDate(s.getDate() + 6);
+    return s.toISOString().slice(0,10);
+  }
+  function startOfMonthISO(dISO){ const d = new Date(dISO + "T00:00:00"); d.setDate(1); return d.toISOString().slice(0,10); }
+  function endOfMonthISO(dISO){ const d = new Date(dISO + "T00:00:00"); d.setMonth(d.getMonth()+1); d.setDate(0); return d.toISOString().slice(0,10); }
+
+  function computeRatio(shot){
+    const dose = parseNum(shot.dose);
+    const y = parseNum(shot.yieldValue);
+    if (!dose || !y) return null;
+    return y / dose;
+  }
+  function outlierFlags(shot){
+    const flags = [];
+    const dose = parseNum(shot.dose);
+    const t = parseNum(shot.timeSec);
+    const ratio = computeRatio(shot);
+    if (dose != null && (dose < 14 || dose > 24)) flags.push("Dose unusual");
+    if (t != null && (t < 12 || t > 60)) flags.push("Time unusual");
+    if (ratio != null && (ratio < 1.2 || ratio > 3.0)) flags.push("Ratio outlier");
+    return flags;
+  }
+  function dialInSuggestions(shot){
+    const sug = [];
+    const t = parseNum(shot.timeSec);
+    const y = parseNum(shot.yieldValue);
+    const dose = parseNum(shot.dose);
+    const ratio = computeRatio(shot);
+    const tag = safeText(shot.resultTag);
+    const yieldLow = (dose != null && y != null) ? (y < dose*1.6) : (ratio != null ? ratio < 1.6 : false);
+
+    if (t != null && t > 35 && yieldLow){
+      sug.push("Shot is slow + yield is low → try a coarser grind or slightly lower dose.");
+      sug.push("Check puck prep: distribution, tamp level, and basket headspace.");
+    }
+    if (t != null && t < 20 && (tag === "Watery" || tag === "Too Fast")){
+      sug.push("Shot is very fast and watery → try a finer grind or slightly higher dose.");
+      sug.push("Confirm grinder retention + ensure consistent puck prep.");
+    }
+    if (tag === "Sour" && (t != null && t < 28)){
+      sug.push("Sour + relatively fast → go a bit finer, aim for longer contact time, or raise temp slightly.");
+    }
+    if (tag === "Bitter" && (t != null && t > 32)){
+      sug.push("Bitter + relatively slow → go a bit coarser, shorten time, or reduce temp slightly.");
+    }
+    if (ratio != null){
+      if (ratio < 1.8) sug.push("Ratio is tight (<1:1.8) → consider increasing yield for clarity (if not over-extracted).");
+      if (ratio > 2.5) sug.push("Ratio is long (>1:2.5) → consider shortening yield for sweetness/body.");
+    }
+    outlierFlags(shot).forEach(f => sug.push("Flag: " + f + "."));
+    if (!sug.length) sug.push("No obvious issues detected. Consider micro-adjustments (±1 grind step, ±0.5g dose).");
+    return sug;
+  }
+
+  function getBaselineForBean(bean, excludeId=null){
+    const b = safeText(bean);
+    if (!b) return null;
+    const same = shots.filter(s => safeText(s.bean) === b && s.id !== excludeId);
+    if (!same.length) return null;
+    // Prefer explicit baselines, else most recent Good
+    const baselines = same.filter(s => !!s.isBaseline);
+    if (baselines.length){
+      baselines.sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+      return baselines[0];
+    }
+    const good = same.filter(s => s.resultTag === "Good");
+    if (good.length){
+      good.sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+      return good[0];
+    }
+    // fallback: most recent shot
+    same.sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+    return same[0];
+  }
+
+  function baselineDeltaSummary(shot){
+    const base = getBaselineForBean(shot.bean, shot.id);
+    if (!base) return "—";
+    const dg = (parseNum(shot.grindSetting) != null && parseNum(base.grindSetting) != null) ? (parseNum(shot.grindSetting)-parseNum(base.grindSetting)) : null;
+    const dt = (parseNum(shot.timeSec) != null && parseNum(base.timeSec) != null) ? (parseNum(shot.timeSec)-parseNum(base.timeSec)) : null;
+    const dr = (computeRatio(shot) != null && computeRatio(base) != null) ? (computeRatio(shot)-computeRatio(base)) : null;
+    const parts=[];
+    if (dg!=null && dg!==0) parts.push(`Grind ${dg>0?'+':''}${dg}`);
+    if (dt!=null && dt!==0) parts.push(`Time ${dt>0?'+':''}${dt}s`);
+    if (dr!=null && Math.abs(dr)>=0.05) parts.push(`Ratio ${dr>0?'+':''}${dr.toFixed(1)}`);
+    if (!parts.length) return "Matches baseline";
+    return parts.join(" · ");
+  }
+
+  function defaultShot(){
+    return {
+      id: uid(),
+      date: todayISO(),
+      bean: "", origin: "", roast: "med", method: "Espresso",
+      grinder: "", grindSetting: "", dose: "",
+      yieldUnit: "g", yieldValue: "", timeSec: "",
+      ratio: null, temp: "", pressure: "", preinfusion: "",
+      tasteNotes: "", resultTag: "Good", notes: "",
+      isBaseline: false, photoDataUrl: ""
+    };
+  }
+
+  function seedData(){
+    const shift = (days) => {
+      const d = new Date(todayISO()+"T00:00:00"); d.setDate(d.getDate()+days);
+      return d.toISOString().slice(0,10);
+    };
+    const base = [
+      {date: shift(-6), bean:"Mt. Apo Medium Roast", origin:"PH / local", roast:"med", method:"Espresso", grinder:"Starseeker", grindSetting:30, dose:18, yieldUnit:"g", yieldValue:36, timeSec:30, tasteNotes:"balanced, cocoa", resultTag:"Good", notes:"Even extraction, clean puck."},
+      {date: shift(-5), bean:"Mt. Apo Medium Roast", origin:"PH / local", roast:"med", method:"Espresso", grinder:"Starseeker", grindSetting:27, dose:19, yieldUnit:"g", yieldValue:30, timeSec:38, tasteNotes:"dense, heavy", resultTag:"Too Tight", notes:"Drip starts late; maybe too fine + high dose."},
+      {date: shift(-5), bean:"Kenya (Punched)", origin:"Kenya / Punched", roast:"light", method:"Espresso", grinder:"Starseeker", grindSetting:31, dose:18, yieldUnit:"g", yieldValue:40, timeSec:22, tasteNotes:"bright, sharp", resultTag:"Sour", notes:"Fast shot; needs finer or longer."},
+      {date: shift(-4), bean:"Kenya (Punched)", origin:"Kenya / Punched", roast:"light", method:"Espresso", grinder:"Starseeker", grindSetting:29, dose:18, yieldUnit:"g", yieldValue:38, timeSec:28, tasteNotes:"citrus, sweet", resultTag:"Good", notes:"Better balance after tightening grind."},
+      {date: shift(-3), bean:"Ethiopia Natural", origin:"Ethiopia / local", roast:"light", method:"Espresso", grinder:"Starseeker", grindSetting:28, dose:18.5, yieldUnit:"g", yieldValue:46, timeSec:32, tasteNotes:"floral, tea-like", resultTag:"Watery", notes:"Long ratio; body thin."},
+      {date: shift(-3), bean:"Ethiopia Natural", origin:"Ethiopia / local", roast:"light", method:"Espresso", grinder:"Starseeker", grindSetting:27, dose:19, yieldUnit:"g", yieldValue:38, timeSec:34, tasteNotes:"jammy, clearer", resultTag:"Good", notes:"Shortened yield improved body."},
+      {date: shift(-2), bean:"Brazil Santos", origin:"Brazil / medium", roast:"dark", method:"Espresso", grinder:"Starseeker", grindSetting:32, dose:18, yieldUnit:"g", yieldValue:36, timeSec:17, tasteNotes:"thin, flat", resultTag:"Too Fast", notes:"Very fast; channeling suspected."},
+      {date: shift(-2), bean:"Brazil Santos", origin:"Brazil / medium", roast:"dark", method:"Espresso", grinder:"Starseeker", grindSetting:29, dose:18.5, yieldUnit:"g", yieldValue:36, timeSec:26, tasteNotes:"chocolate, nutty", resultTag:"Good", notes:"Distribution improved; stable flow."},
+      {date: shift(-1), bean:"Colombia Washed", origin:"Colombia / washed", roast:"med", method:"Espresso", grinder:"Starseeker", grindSetting:30, dose:18, yieldUnit:"g", yieldValue:42, timeSec:36, tasteNotes:"dry, harsh", resultTag:"Bitter", notes:"Slow + longer ratio; reduce time or coarsen."},
+      {date: shift(0), bean:"Mt. Apo Medium Roast", origin:"PH / local", roast:"med", method:"Espresso", grinder:"Starseeker", grindSetting:30, dose:18, yieldUnit:"g", yieldValue:36, timeSec:29, tasteNotes:"sweet, steady", resultTag:"Good", notes:"Baseline candidate."},
+    ].map(x => {
+      const s = defaultShot();
+      Object.assign(s, x);
+      s.id = uid();
+      s.ratio = computeRatio(s);
+      return s;
+    });
+    base[0].isBaseline = true;
+    base[9].isBaseline = true;
+    return base;
+  }
+
+  function loadShots(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw){
+        const s = seedData();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        return s;
+      }
+      const data = JSON.parse(raw);
+      if (!Array.isArray(data)) throw new Error("Invalid");
+      return data.map(x => {
+        const s = defaultShot();
+        Object.assign(s, x);
+        if (!s.id) s.id = uid();
+        s.ratio = computeRatio(s);
+        return s;
+      });
+    }catch{
+      const s = seedData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      return s;
+    }
+  }
+  function persistShots(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(shots)); }
+  function loadSettings(){ try{ return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); }catch{ return {}; } }
+  function saveSettings(){
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ view, sortBy, sortDir, filterMode, pageTitle: safeText($("#pageTitle").textContent) }));
+  }
+
+
+  // Debounced rendering keeps typing and edits fast
+  let __renderTimer = null;
+  function scheduleRender(immediate=false){
+    if (__renderTimer){ clearTimeout(__renderTimer); __renderTimer = null; }
+
+  let __chartTimer = null;
+  function scheduleCharts(){
+    if (__chartTimer){ clearTimeout(__chartTimer); __chartTimer = null; }
+    // Defer chart drawing slightly so typing/editing stays fast
+    __chartTimer = setTimeout(() => {
+      __chartTimer = null;
+      try{ scheduleCharts(); }catch(e){}
+    }, 220);
+  }
+    if (immediate){ render(); return; }
+    __renderTimer = setTimeout(() => { __renderTimer = null; render(); }, 120);
+  }
+
+
+  const map = (x,a,b,c,d)=> (a===b)?(c+d)/2 : (c + ((x-a)/(b-a))*(d-c));
+  function drawEmpty(ctx,w,h){
+    ctx.fillStyle="rgba(17,17,17,0.45)";
+    ctx.font="13px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+    ctx.textAlign="center";
+    ctx.fillText("No data for this view.", w/2, h/2);
+  }
+  function drawChartFrame(ctx,w,h,pad,xLabel,yLabel){
+    ctx.fillStyle="rgba(255,255,255,1)";
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle="rgba(17,17,17,0.55)";
+    ctx.font="12px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+    ctx.textAlign="left";
+    ctx.fillText(xLabel, pad.l, h-12);
+    ctx.save();
+    ctx.translate(12, h/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.textAlign="center";
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+    ctx.strokeStyle="rgba(0,0,0,0.06)";
+    ctx.strokeRect(pad.l,pad.t,(w-pad.l-pad.r),(h-pad.t-pad.b));
+  }
+  function drawGrid(ctx,w,h,pad,steps){
+    for (let i=1;i<=steps;i++){
+      const y = pad.t + (h-pad.t-pad.b)*(i/steps);
+      ctx.strokeStyle="rgba(0,0,0,0.05)";
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();
+    }
+    for (let i=1;i<=steps;i++){
+      const x = pad.l + (w-pad.l-pad.r)*(i/steps);
+      ctx.strokeStyle="rgba(0,0,0,0.05)";
+      ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,h-pad.b); ctx.stroke();
+    }
+  }
+  function roundNice(v){
+    if (!Number.isFinite(v)) return "—";
+    const abs=Math.abs(v);
+    if (abs>=100) return String(Math.round(v));
+    if (abs>=10) return (Math.round(v*10)/10).toString();
+    return (Math.round(v*100)/100).toString();
+  }
+  function drawTicks(ctx,w,h,pad,x0,x1,y0,y1,opt={}){
+    ctx.fillStyle="rgba(17,17,17,0.45)";
+    ctx.font="11px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+    ctx.textAlign="center";
+    if (!opt.hideX){
+      const steps=4;
+      for (let i=0;i<=steps;i++){
+        const t=i/steps;
+        const v=x0+(x1-x0)*t;
+        const x=pad.l+(w-pad.l-pad.r)*t;
+        ctx.fillText(roundNice(v), x, h-pad.b+18);
+      }
+    }
+  }
+
+  const esc = (s)=> String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  const escAttr = (s)=> String(s??"").replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+
+  let shots = loadShots();
+  let selectedId = null;
+
+  const st = loadSettings();
+  let view = st.view || "all";
+  let sortBy = st.sortBy || "date";
+  let sortDir = st.sortDir || "desc";
+  let filterMode = st.filterMode || "none";
+  let search = "";
+  let dateCursor = todayISO();
+
+  const datePicker = document.getElementById("datePicker");
+  const searchInput = document.getElementById("searchInput");
+  const tbody = document.getElementById("shotsTbody");
+  const tableMeta = document.getElementById("tableMeta");
+  const sortMeta = document.getElementById("sortMeta");
+  const modalOverlay = document.getElementById("modalOverlay");
+  const newShotForm = document.getElementById("newShotForm");
+  const btnNewShot = document.getElementById("btnNewShot");
+  const btnCloseModal = document.getElementById("btnCloseModal");
+  const drawerEmpty = document.getElementById("drawerEmpty");
+  const drawerContent = document.getElementById("drawerContent");
+  const drawerForm = document.getElementById("drawerForm");
+  const photoPreview = document.getElementById("photoPreview");
+  const drawerPhotoInput = document.getElementById("drawerPhotoInput");
+  const baselineList = document.getElementById("baselineList");
+  const todayPanel = document.getElementById("todayPanel");
+  const todayPanelMeta = document.getElementById("todayPanelMeta");
+  const todayPanelPrimary = document.getElementById("todayPanelPrimary");
+  const todayPanelLast = document.getElementById("todayPanelLast");
+  const todayPanelTarget = document.getElementById("todayPanelTarget");
+  const todayPanelSuggest = document.getElementById("todayPanelSuggest");
+  const todaySub = document.getElementById("todaySub");
+  const btnJumpToday = document.getElementById("btnJumpToday");
+
+  const kpiDose = document.getElementById("kpiDose");
+  const kpiYield = document.getElementById("kpiYield");
+  const kpiTime = document.getElementById("kpiTime");
+  const kpiRatio = document.getElementById("kpiRatio");
+
+  const chart1 = document.getElementById("chartTimeVsGrind");
+  const chart2 = document.getElementById("chartRatioVsResult");
+  const chart3 = document.getElementById("chartShotsPerBean");
+  const chartMeta1 = document.getElementById("chartMeta1");
+  const chartMeta2 = document.getElementById("chartMeta2");
+  const chartMeta3 = document.getElementById("chartMeta3");
+
+  datePicker.value = dateCursor;
+  datePicker.addEventListener("change", () => { dateCursor = datePicker.value || todayISO(); scheduleRender(true); });
+  if (btnJumpToday){
+    btnJumpToday.addEventListener("click", () => {
+      const t = todayISO();
+      dateCursor = t;
+      datePicker.value = t;
+      if (quickDate) quickDate.value = t;
+      view = "today";
+      document.querySelectorAll(".sbBtn").forEach(b => b.classList.remove("active"));
+      const vb = document.querySelector(`.sbBtn[data-view="today"]`);
+      if (vb) vb.classList.add("active");
+      saveSettings();
+      render();
+    });
+  }
+  searchInput.addEventListener("input", () => { search = safeText(searchInput.value); scheduleRender(); });
+document.querySelectorAll(".sbBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sbBtn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      view = btn.dataset.view;
+      if (view === "today"){
+        const t = todayISO();
+        dateCursor = t;
+        datePicker.value = t;
+        if (quickDate) quickDate.value = t;
+      }
+      saveSettings();
+      scheduleRender(true);
+    });
+  });
+
+  const activeBtn = document.querySelector(`.sbBtn[data-view="${view}"]`);
+  if (activeBtn){
+    document.querySelectorAll(".sbBtn").forEach(b => b.classList.remove("active"));
+    activeBtn.classList.add("active");
+  }
+
+  btnNewShot.addEventListener("click", openNewShot);
+  btnCloseModal.addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) closeModal(); });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+    if (e.key === "/" && !modalOverlayIsOpen()){
+      e.preventDefault(); searchInput.focus();
+    }
+    if ((e.key === "n" || e.key === "N") && !modalOverlayIsOpen()){
+      e.preventDefault(); openNewShot();
+    }
+  });
+
+  document.getElementById("btnFilter").addEventListener("click", () => {
+    const order = ["none","goodOnly","issuesOnly"];
+    filterMode = order[(order.indexOf(filterMode)+1) % order.length];
+    saveSettings(); render(); toast(`Filter: ${filterLabel(filterMode)}`);
+  });
+  document.getElementById("btnSort").addEventListener("click", () => {
+    const order = ["date","bean","grindSetting","timeSec","ratio"];
+    sortBy = order[(order.indexOf(sortBy)+1) % order.length];
+    sortDir = (sortBy === "date") ? "desc" : "asc";
+    saveSettings(); render(); toast(`Sort: ${sortBy} (${sortDir})`);
+  });
+
+  document.getElementById("btnExport").addEventListener("click", () => openExportMenu());
+  document.getElementById("btnImport").addEventListener("click", () => openImportDialog());
+
+  newShotForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(newShotForm);
+    const s = defaultShot();
+    for (const [k,v] of fd.entries()) s[k] = safeText(v);
+    s.ratio = computeRatio(s);
+    shots.unshift(s);
+    persistShots();
+    closeModal();
+    selectedId = s.id;
+    render();
+    toast("Shot added.");
+  });
+
+  document.getElementById("btnSeedReset").addEventListener("click", () => {
+    if (!confirm("Reset to sample data? This will overwrite current shots.")) return;
+    shots = seedData();
+    persistShots();
+    selectedId = null;
+    closeModal();
+    render();
+    toast("Sample data restored.");
+  });
+
+  document.getElementById("btnClearSelection").addEventListener("click", () => { selectedId = null; render(); });
+
+  document.getElementById("btnSaveDrawer").addEventListener("click", () => {
+    if (!selectedId) return;
+    const s = shots.find(x => x.id === selectedId);
+    if (!s) return;
+    drawerForm.querySelectorAll("[data-dfield]").forEach(el => s[el.dataset.dfield] = safeText(el.value));
+    s.ratio = computeRatio(s);
+    persistShots(); render(); toast("Saved.");
+  });
+
+  document.getElementById("btnDelete").addEventListener("click", () => {
+    if (!selectedId) return;
+    if (!confirm("Delete this shot?")) return;
+    shots = shots.filter(x => x.id !== selectedId);
+    selectedId = null;
+    persistShots(); render(); toast("Deleted.");
+  });
+
+  document.getElementById("btnClone").addEventListener("click", () => {
+    if (!selectedId) return;
+    const src = shots.find(x => x.id === selectedId);
+    if (!src) return;
+    const c = structuredClone(src);
+    c.id = uid();
+    c.date = todayISO();
+    c.isBaseline = false;
+    shots.unshift(c);
+    persistShots();
+    selectedId = c.id;
+    render();
+    toast("Cloned to today.");
+  });
+
+  document.getElementById("btnBaseline").addEventListener("click", () => {
+    if (!selectedId) return;
+    const s = shots.find(x => x.id === selectedId);
+    if (!s) return;
+    s.isBaseline = true;
+    persistShots(); render(); toast("Marked as baseline.");
+  });
+
+  drawerPhotoInput.addEventListener("change", async () => {
+    if (!selectedId) return;
+    const file = drawerPhotoInput.files && drawerPhotoInput.files[0];
+    if (!file) return;
+    const dataUrl = await compressImageToDataURL(file, 980, 0.82);
+    const s = shots.find(x => x.id === selectedId);
+    if (!s) return;
+    s.photoDataUrl = dataUrl;
+    persistShots(); render(); toast("Photo attached.");
+  });
+
+  document.querySelector("#shotsTable thead").addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-sort]");
+    if (!th) return;
+    const key = th.dataset.sort;
+    if (sortBy === key) sortDir = (sortDir === "asc") ? "desc" : "asc";
+    else { sortBy = key; sortDir = (key === "date") ? "desc" : "asc"; }
+    saveSettings();
+    render();
+  });
+
+  tbody.addEventListener("blur", (e) => {
+    const cell = e.target.closest("[data-id][data-field]");
+    if (!cell) return;
+    const id = cell.dataset.id;
+    const field = cell.dataset.field;
+    const s = shots.find(x => x.id === id);
+    if (!s) return;
+    let value = safeText(cell.textContent);
+    if (field === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(value)) value = s.date;
+    if (["dose","yieldValue","timeSec","grindSetting","temp","pressure","preinfusion"].includes(field)){
+      if (value !== "" && !Number.isFinite(Number(value))) value = s[field] ?? "";
+    }
+    if (field === "resultTag" && !RESULT_TAGS.includes(value)) value = s.resultTag;
+    s[field] = value;
+    s.ratio = computeRatio(s);
+    persistShots();
+    render(false);
+  }, true);
+
+  tbody.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (btn){
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if (action === "select") { selectedId = id; render(false); }
+      if (action === "clone") { selectedId = id; document.getElementById("btnClone").click(); }
+      if (action === "delete") { selectedId = id; document.getElementById("btnDelete").click(); }
+      return;
+    }
+    const tr = e.target.closest("tr[data-id]");
+    if (!tr) return;
+    selectedId = tr.dataset.id;
+    render(false);
+  });
+
+  const pageTitle = document.getElementById("pageTitle");
+  if (st.pageTitle) pageTitle.textContent = st.pageTitle;
+  pageTitle.addEventListener("blur", saveSettings);
+
+  function viewLabel(v){
+    const m = {all:"All Shots",today:"Today",week:"This Week",month:"This Month",byBean:"By Bean",byGrind:"By Grind Setting",recipes:"Recipes (Baselines)",issues:"Issues",
+      issue_tooTight:"Too Tight",issue_tooFast:"Too Fast",issue_watery:"Watery",issue_sour:"Sour",issue_bitter:"Bitter",baselineDiff:"Baseline Diff"};
+    return m[v] || "All Shots";
+  }
+  function filterLabel(f){ return {none:"None",goodOnly:"Good only",issuesOnly:"Issues only"}[f] || "None"; }
+
+  function sortLabelText(){
+    const names = {
+      date:"Date",
+      bean:"Coffee / Bean",
+      origin:"Origin/Roaster",
+      roast:"Roast",
+      method:"Method",
+      grinder:"Grinder",
+      grindSetting:"Grind",
+      dose:"Dose",
+      yieldValue:"Yield",
+      timeSec:"Time",
+      ratio:"Ratio",
+      resultTag:"Result",
+      baselineDelta:"Δ vs baseline"
+    };
+    const n = names[sortBy] || "Date";
+    const dir = (sortDir === "asc") ? "asc" : "desc";
+    let suffix = dir === "asc" ? "(ascending)" : "(descending)";
+    if (sortBy === "date") suffix = dir === "asc" ? "(oldest first)" : "(newest first)";
+    if (sortBy === "bean" || sortBy === "origin" || sortBy === "roast" || sortBy === "method" || sortBy === "grinder" || sortBy === "resultTag"){
+      suffix = dir === "asc" ? "(A→Z)" : "(Z→A)";
+    }
+    if (sortBy === "dose" || sortBy === "yieldValue" || sortBy === "timeSec" || sortBy === "ratio" || sortBy === "grindSetting"){
+      suffix = dir === "asc" ? "(low→high)" : "(high→low)";
+    }
+    return `Sorted by: ${n} ${suffix}`;
+  }
+
+  function sortShots(list){
+    const dir = (sortDir === "asc") ? 1 : -1;
+    const get = (s, key) => {
+      if (key === "baselineDelta") return baselineDeltaSummary(s);
+
+      if (key === "ratio") return computeRatio(s) ?? -Infinity;
+      if (key === "yieldValue") return Number(s.yieldValue) || -Infinity;
+      if (key === "dose") return Number(s.dose) || -Infinity;
+      if (key === "timeSec") return Number(s.timeSec) || -Infinity;
+      if (key === "grindSetting") return Number(s.grindSetting) || -Infinity;
+      return safeText(s[key] ?? "");
+    };
+    return list.sort((a,b) => {
+      const av = get(a, sortBy), bv = get(b, sortBy);
+      if (typeof av === "number" && typeof bv === "number"){
+        if (av === bv) return safeText(b.date).localeCompare(safeText(a.date));
+        return (av - bv) * dir;
+      }
+      const cmp = safeText(av).localeCompare(safeText(bv));
+      if (cmp !== 0) return cmp * dir;
+      return safeText(b.date).localeCompare(safeText(a.date));
+    });
+  }
+
+  function getVisibleShots(){
+    let list = [...shots];
+    const c = dateCursor || todayISO();
+    const sWeek = startOfWeekISO(c), eWeek = endOfWeekISO(c);
+    const sMonth = startOfMonthISO(c), eMonth = endOfMonthISO(c);
+
+    if (view === "today") { const t = todayISO(); list = list.filter(x => x.date === t); }
+    else if (view === "week") list = list.filter(x => x.date >= sWeek && x.date <= eWeek);
+    else if (view === "month") list = list.filter(x => x.date >= sMonth && x.date <= eMonth);
+    else if (view === "recipes") list = list.filter(x => !!x.isBaseline);
+    else if (view === "issues") list = list.filter(x => x.resultTag && x.resultTag !== "Good");
+    else if (view === "baselineDiff") list = list.filter(x => safeText(x.bean)).sort((a,b)=> safeText(a.bean).localeCompare(safeText(b.bean)) || (b.date||"").localeCompare(a.date||""));
+    else if (view.startsWith("issue_")){
+      const mapV = { issue_tooTight:"Too Tight", issue_tooFast:"Too Fast", issue_watery:"Watery", issue_sour:"Sour", issue_bitter:"Bitter" };
+      list = list.filter(x => x.resultTag === mapV[view]);
+    }
+
+    if (filterMode === "goodOnly") list = list.filter(x => x.resultTag === "Good");
+    if (filterMode === "issuesOnly") list = list.filter(x => x.resultTag && x.resultTag !== "Good");
+
+    const q = safeText(search).toLowerCase();
+    if (q){
+      list = list.filter(x => [
+        x.bean,x.origin,x.roast,x.method,x.grinder,x.grindSetting,x.dose,x.yieldValue,x.timeSec,
+        x.tasteNotes,x.notes,x.resultTag
+      ].join(" ").toLowerCase().includes(q));
+    }
+
+    list = sortShots(list);
+    if (view === "byBean") list = list.sort((a,b) => safeText(a.bean).localeCompare(safeText(b.bean)) || (b.date||"").localeCompare(a.date||""));
+    if (view === "byGrind") list = list.sort((a,b) => (Number(a.grindSetting)||0)-(Number(b.grindSetting)||0) || (b.date||"").localeCompare(a.date||""));
+    return list;
+  }
+
+  function updateSidebarMeta(){
+    const c = dateCursor || todayISO();
+    const sW = startOfWeekISO(c), eW = endOfWeekISO(c);
+    const sM = startOfMonthISO(c), eM = endOfMonthISO(c);
+    document.getElementById("metaAll").textContent = shots.length;
+    document.getElementById("metaToday").textContent = shots.filter(x => x.date === c).length;
+    if (todaySub){
+      const t = todayISO();
+      todaySub.textContent = (c === t) ? `Showing shots from ${t}` : `Today is ${t}`;
+    }
+    document.getElementById("metaWeek").textContent = shots.filter(x => x.date >= sW && x.date <= eW).length;
+    document.getElementById("metaMonth").textContent = shots.filter(x => x.date >= sM && x.date <= eM).length;
+    document.getElementById("metaRecipes").textContent = shots.filter(x => x.isBaseline).length;
+    document.getElementById("metaIssues").textContent = shots.filter(x => x.resultTag && x.resultTag !== "Good").length;
+    const beansWithBase = new Set(shots.filter(s => (s.isBaseline || s.resultTag==="Good") && safeText(s.bean)).map(s => safeText(s.bean)));
+    document.getElementById("metaBaselineDiff").textContent = shots.filter(s => safeText(s.bean) && beansWithBase.has(safeText(s.bean))).length;
+    document.getElementById("metaTight").textContent = shots.filter(x => x.resultTag === "Too Tight").length;
+    document.getElementById("metaFast").textContent = shots.filter(x => x.resultTag === "Too Fast").length;
+    document.getElementById("metaWatery").textContent = shots.filter(x => x.resultTag === "Watery").length;
+    document.getElementById("metaSour").textContent = shots.filter(x => x.resultTag === "Sour").length;
+    document.getElementById("metaBitter").textContent = shots.filter(x => x.resultTag === "Bitter").length;
+  }
+
+  function renderInput(key,type,value){
+    if (type === "textarea") return `<textarea data-dfield="${key}">${esc(value)}</textarea>`;
+    if (type === "select"){
+      if (key === "roast") return `<select data-dfield="${key}">${["light","med","dark"].map(v=>`<option value="${v}" ${value===v?"selected":""}>${v}</option>`).join("")}</select>`;
+      if (key === "method") return `<select data-dfield="${key}">${["Espresso","Ristretto","Lungo"].map(v=>`<option value="${v}" ${value===v?"selected":""}>${v}</option>`).join("")}</select>`;
+      if (key === "yieldUnit") return `<select data-dfield="${key}">${["g","ml"].map(v=>`<option value="${v}" ${value===v?"selected":""}>${v}</option>`).join("")}</select>`;
+      if (key === "resultTag") return `<select data-dfield="${key}">${RESULT_TAGS.map(v=>`<option value="${v}" ${value===v?"selected":""}>${v}</option>`).join("")}</select>`;
+    }
+    const inputType = (type === "date") ? "date" : (type === "number" ? "number" : "text");
+    const step = (type === "number") ? 'step="0.1"' : "";
+    return `<input ${step} type="${inputType}" data-dfield="${key}" value="${escAttr(value)}" />`;
+  }
+
+  function renderDrawer(){
+    const s = shots.find(x => x.id === selectedId);
+    if (!s){
+      drawerEmpty.style.display = "";
+      drawerContent.style.display = "none";
+      drawerForm.innerHTML = "";
+      photoPreview.innerHTML = "<span>No photo attached</span>";
+      drawerPhotoInput.value = "";
+      return;
+    }
+    drawerEmpty.style.display = "none";
+    drawerContent.style.display = "";
+    const fields = [
+      ["date","Date","date","full"],["bean","Coffee / Bean Name","text","full"],["origin","Origin / Roaster","text","full"],
+      ["roast","Roast Level","select",""],["method","Brew Method","select",""],["grinder","Grinder","text",""],
+      ["grindSetting","Grind Setting","number",""],["dose","Dose (g)","number",""],["yieldUnit","Yield Unit","select",""],
+      ["yieldValue","Yield Value","number",""],["timeSec","Time (s)","number",""],["temp","Temp (°C)","number",""],
+      ["pressure","Pressure (bar)","number",""],["preinfusion","Pre-infusion (s)","number",""],
+      ["resultTag","Result Tag","select","full"],["tasteNotes","Taste Notes","text","full"],["notes","Notes","textarea","full"]
+    ];
+    drawerForm.innerHTML = fields.map(([key,label,type,span]) => {
+      const value = (s[key] ?? "");
+      const full = span === "full" ? " full" : "";
+      return `<div class="fRow${full}"><label>${label}</label>${renderInput(key,type,value)}</div>`;
+    }).join("");
+    photoPreview.innerHTML = s.photoDataUrl ? `<img alt="Shot photo" src="${s.photoDataUrl}">` : "<span>No photo attached</span>";
+    document.getElementById("suggestList").innerHTML = dialInSuggestions(s).map(x => `<li>${esc(x)}</li>`).join("");
+  }
+
+  function dominantYieldUnit(list){
+    const g = list.filter(x => (x.yieldUnit || "g") === "g").length;
+    const ml = list.length - g;
+    return (ml > g) ? "ml" : "g";
+  }
+  function renderKPIs(list){
+    const avg = (arr) => {
+      const v = arr.filter(x => x!=null && Number.isFinite(x));
+      if (!v.length) return null;
+      return v.reduce((a,b)=>a+b,0)/v.length;
+    };
+    const aDose = avg(list.map(s=>parseNum(s.dose)));
+    const aYield = avg(list.map(s=>parseNum(s.yieldValue)));
+    const aTime = avg(list.map(s=>parseNum(s.timeSec)));
+    const aRatio = avg(list.map(s=>computeRatio(s)));
+
+    kpiDose.textContent = aDose==null ? "—" : `${fmt(aDose,1)} g`;
+    kpiYield.textContent = aYield==null ? "—" : `${fmt(aYield,1)} ${dominantYieldUnit(list)}`;
+    kpiTime.textContent = aTime==null ? "—" : `${fmt(aTime,0)} s`;
+    kpiRatio.textContent = aRatio==null ? "—" : `1:${fmt(aRatio,1)}`;
+  }
+
+  function renderBaselines(){
+    const good = shots.filter(s => s.resultTag === "Good" && safeText(s.bean));
+    const mapBean = new Map();
+    good.sort((a,b) => (b.date||"").localeCompare(a.date||""));
+    good.forEach(s => { if (!mapBean.has(s.bean)) mapBean.set(s.bean, s); });
+    const items = Array.from(mapBean.values()).slice(0, 8);
+    baselineList.innerHTML = items.length ? items.map(s => {
+      const ratio = computeRatio(s);
+      return `<div class="baselineItem">
+        <div class="left">
+          <div class="name">${esc(s.bean)}</div>
+          <div class="meta mono">${esc(s.date)} · grind ${esc(s.grindSetting || "—")} · ${esc(s.dose || "—")}g → ${esc(s.yieldValue || "—")}${esc(s.yieldUnit||"g")} · ${esc(s.timeSec||"—")}s · 1:${ratio?fmt(ratio,1):"—"}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn" style="height:34px;border-radius:12px;" onclick="window.__selectShot('${s.id}')">Open</button>
+        </div>
+      </div>`;
+    }).join("") : `<div class="tinyNote">No “Good” shots yet. Once you log a good result, it will appear here as a baseline candidate.</div>`;
+  }
+
+
+  function renderTodayPanel(list){
+    if (!todayPanel) return;
+    if (view !== "today"){
+      todayPanel.style.display = "none";
+      return;
+    }
+    todayPanel.style.display = "";
+    const t = todayISO();
+    const todayShots = shots.filter(s => s.date === t);
+    todayPanelMeta.textContent = `${todayShots.length} shot${todayShots.length===1?'':'s'} logged · ${t}`;
+    if (!todayShots.length){
+      todayPanelPrimary.textContent = "Log your first shot for today. Use Quick Add below.";
+      todayPanelLast.textContent = "Last: —";
+      todayPanelSuggest.textContent = "Tip: start from your most recent Good shot baseline for this bean.";
+      return;
+    }
+    // Most recent = top of shots array tends to be newest; filter keeps order
+    const last = todayShots[0];
+    const ratio = computeRatio(last);
+    const base = getBaselineForBean(last.bean, last.id);
+    todayPanelPrimary.textContent = last.bean ? `Last shot: ${last.bean}` : "Last shot: —";
+    todayPanelLast.textContent = `Last: ${last.resultTag || "—"} · ${last.timeSec||"—"}s · 1:${ratio?fmt(ratio,1):"—"}`;
+    if (base){
+      const dr = (computeRatio(last)!=null && computeRatio(base)!=null) ? (computeRatio(last)-computeRatio(base)) : null;
+      const dt = (parseNum(last.timeSec)!=null && parseNum(base.timeSec)!=null) ? (parseNum(last.timeSec)-parseNum(base.timeSec)) : null;
+      const dg = (parseNum(last.grindSetting)!=null && parseNum(base.grindSetting)!=null) ? (parseNum(last.grindSetting)-parseNum(base.grindSetting)) : null;
+      const parts = [];
+      if (dg!=null && dg!==0) parts.push(`grind ${dg>0?'+':''}${dg}`);
+      if (dt!=null && dt!==0) parts.push(`time ${dt>0?'+':''}${dt}s`);
+      if (dr!=null && Math.abs(dr)>=0.05) parts.push(`ratio ${dr>0?'+':''}${dr.toFixed(1)}`);
+      todayPanelSuggest.textContent = parts.length
+        ? `Compared to baseline: ${parts.join(" · ")}. Suggestion: ${dialInSuggestions(last)[0]}`
+        : `Matches baseline closely. Suggestion: ${dialInSuggestions(last)[0]}`;
+    }else{
+      todayPanelSuggest.textContent = `No baseline found for this bean yet. Suggestion: ${dialInSuggestions(last)[0]}`;
+    }
+  }
+
+
+  function renderScatter(canvas, list, opts){
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    const pad = {l:46, r:18, t:16, b:34};
+    const pts = list.map(s => ({x: parseNum(s[opts.xKey]), y: parseNum(s[opts.yKey]), tag: s.resultTag||""}))
+      .filter(p => p.x!=null && p.y!=null);
+
+    ctx.clearRect(0,0,w,h);
+    drawChartFrame(ctx,w,h,pad, opts.xLabel, opts.yLabel);
+    if (!pts.length){ opts.metaEl.textContent = "no data"; drawEmpty(ctx,w,h); return; }
+
+    const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const x0 = xMin===xMax ? xMin-1 : xMin;
+    const x1 = xMin===xMax ? xMax+1 : xMax;
+    const y0 = yMin===yMax ? yMin-1 : yMin;
+    const y1 = yMin===yMax ? yMax+1 : yMax;
+
+    opts.metaEl.textContent = `${pts.length} pts`;
+    drawGrid(ctx,w,h,pad,4);
+
+    pts.forEach(p => {
+      const x = map(p.x, x0, x1, pad.l, w-pad.r);
+      const y = map(p.y, y0, y1, h-pad.b, pad.t);
+      const alpha = (p.tag === "Good") ? 0.95 : 0.55;
+      ctx.fillStyle = `rgba(17,17,17,${alpha})`;
+      ctx.beginPath(); ctx.arc(x,y, (p.tag==="Good"?4:3), 0, Math.PI*2); ctx.fill();
+    });
+    drawTicks(ctx,w,h,pad, x0,x1,y0,y1);
+  }
+
+  function renderRatioVsResult(canvas, list){
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    const pad = {l:46, r:18, t:16, b:34};
+
+    const pts = list.map(s => ({ ratio: computeRatio(s), tag: s.resultTag || "—" }))
+      .filter(p => p.ratio != null && RESULT_TAGS.includes(p.tag));
+
+    ctx.clearRect(0,0,w,h);
+    drawChartFrame(ctx,w,h,pad,"Ratio","Result Tag");
+    if (!pts.length){ chartMeta2.textContent = "no data"; drawEmpty(ctx,w,h); return; }
+
+    chartMeta2.textContent = `${pts.length} pts`;
+    const xs = pts.map(p=>p.ratio);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const x0 = xMin===xMax ? xMin-0.5 : xMin;
+    const x1 = xMin===xMax ? xMax+0.5 : xMax;
+
+    drawGrid(ctx,w,h,pad,4);
+
+    const yMap = new Map(RESULT_TAGS.map((t,i)=>[t,i]));
+    RESULT_TAGS.forEach((t,i) => {
+      const y = map(i, 0, RESULT_TAGS.length-1, h-pad.b, pad.t);
+      ctx.fillStyle = "rgba(17,17,17,0.55)";
+      ctx.font = "12px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+      ctx.textAlign = "left";
+      ctx.fillText(t, pad.l + 8, y + 4);
+      ctx.strokeStyle = "rgba(0,0,0,0.06)";
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w-pad.r, y); ctx.stroke();
+    });
+
+    pts.forEach(p => {
+      const xi = map(p.ratio, x0, x1, pad.l, w-pad.r);
+      const baseY = map(yMap.get(p.tag), 0, RESULT_TAGS.length-1, h-pad.b, pad.t);
+      const jitter = (Math.random()-0.5) * 10;
+      const y = baseY + jitter;
+      const alpha = (p.tag === "Good") ? 0.95 : 0.55;
+      ctx.fillStyle = `rgba(17,17,17,${alpha})`;
+      ctx.beginPath(); ctx.arc(xi,y, (p.tag==="Good"?4:3), 0, Math.PI*2); ctx.fill();
+    });
+    drawTicks(ctx,w,h,pad, x0,x1, 0, 1, {hideY:true});
+  }
+
+  function renderShotsPerBeanThisWeek(canvas){
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    const pad = {l:46, r:18, t:16, b:54};
+
+    const c = dateCursor || todayISO();
+    const sWeek = startOfWeekISO(c), eWeek = endOfWeekISO(c);
+    const weekShots = shots.filter(x => x.date >= sWeek && x.date <= eWeek);
+
+    const counts = new Map();
+    weekShots.forEach(s => {
+      const k = safeText(s.bean) || "—";
+      counts.set(k, (counts.get(k)||0) + 1);
+    });
+    const items = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    ctx.clearRect(0,0,w,h);
+    drawChartFrame(ctx,w,h,pad,"Beans","Shots (week)");
+    chartMeta3.textContent = `${weekShots.length} shots · ${sWeek} → ${eWeek}`;
+    if (!items.length){ drawEmpty(ctx,w,h); return; }
+
+    const max = Math.max(...items.map(x=>x[1]));
+    drawGrid(ctx,w,h,pad,4);
+
+    const barW = (w - pad.l - pad.r) / items.length;
+    items.forEach((it,i) => {
+      const [name,count] = it;
+      const x = pad.l + i*barW + barW*0.15;
+      const bw = barW*0.7;
+      const y = map(count, 0, max, h-pad.b, pad.t);
+      const bh = (h-pad.b) - y;
+      ctx.fillStyle = "rgba(17,17,17,0.8)";
+      ctx.fillRect(x,y,bw,bh);
+
+      ctx.fillStyle = "rgba(17,17,17,0.65)";
+      ctx.font = "12px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+      ctx.textAlign = "center";
+      ctx.fillText(String(count), x + bw/2, y - 6);
+
+      ctx.fillStyle = "rgba(17,17,17,0.55)";
+      const short = name.length > 16 ? name.slice(0,16) + "…" : name;
+      ctx.fillText(short, x + bw/2, h - pad.b + 22);
+    });
+
+    drawTicks(ctx,w,h,pad, 0, items.length, 0, max, {hideX:true});
+  }
+
+  function renderCharts(list){
+    renderScatter(chart1, list, { xKey:"grindSetting", yKey:"timeSec", xLabel:"Grind", yLabel:"Time (s)", metaEl: chartMeta1 });
+    renderRatioVsResult(chart2, list);
+    renderShotsPerBeanThisWeek(chart3);
+  }
+
+  function render(){
+    // Sync internal view with the sidebar active state (prevents mismatches)
+    const activeBtn = document.querySelector('.sbBtn.active');
+    if (activeBtn && activeBtn.dataset && activeBtn.dataset.view) view = activeBtn.dataset.view;
+
+    // Keep 'Today' view truly anchored to today's date
+    if (view === "today"){
+      const t = todayISO();
+      dateCursor = t;
+      datePicker.value = t;
+      if (quickDate) quickDate.value = t;
+    }
+
+    updateSidebarMeta();
+    const list = getVisibleShots();
+    renderTodayPanel(list);
+    const issuesPill = document.getElementById("issuesPill");
+    if (issuesPill){
+      issuesPill.style.display = issuesOnly ? "inline-flex" : "none";
+      issuesPill.onclick = toggleIssuesFilter;
+    }
+
+    tableMeta.textContent = `${list.length} entries · view: ${viewLabel(view)}${filterMode !== "none" ? " · " + filterLabel(filterMode) : ""}`;
+    if (sortMeta) sortMeta.textContent = sortLabelText();
+
+    document.querySelectorAll("#shotsTable thead th[data-sort]").forEach(th => {
+      const key = th.dataset.sort;
+      const el = document.getElementById("sort_"+key);
+      if (el) el.textContent = (key === sortBy) ? (sortDir === "asc" ? "↑" : "↓") : "";
+    });
+
+    tbody.innerHTML = "";
+    list.forEach(s => {
+      const tr = document.createElement("tr");
+      tr.dataset.id = s.id;
+      if (s.id === selectedId) tr.classList.add("selected");
+      const ratio = computeRatio(s);
+      const ratioText = (ratio == null) ? "—" : (Math.round(ratio*10)/10).toFixed(1);
+
+      tr.innerHTML = `
+        <td class="freeze-col col-date" data-label="Date"><div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="date">${esc(s.date)}</div></td>
+        <td class="freeze-col col-bean" data-label="Coffee / Bean"><div class="cell editable" contenteditable="true" data-id="${s.id}" data-field="bean">${esc(s.bean)}</div></td>
+        <td data-label="Origin/Roaster"><div class="cell editable" contenteditable="true" data-id="${s.id}" data-field="origin">${esc(s.origin || "")}</div></td>
+        <td data-label="Roast"><div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="roast">${esc(s.roast || "")}</div></td>
+        <td data-label="Method"><div class="cell editable" contenteditable="true" data-id="${s.id}" data-field="method">${esc(s.method || "Espresso")}</div></td>
+        <td data-label="Grinder"><div class="cell editable" contenteditable="true" data-id="${s.id}" data-field="grinder">${esc(s.grinder || "")}</div></td>
+        <td data-label="Grind"><div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="grindSetting">${esc(s.grindSetting ?? "")}</div></td>
+        <td data-label="Dose (g)"><div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="dose">${esc(s.dose ?? "")}</div></td>
+        <td data-label="Yield"><div style="display:flex;gap:8px;align-items:center;">
+          <div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="yieldValue" style="min-width:54px;">${esc(s.yieldValue ?? "")}</div>
+          <span class="chip mono" title="Yield unit (edit in details)">${esc(s.yieldUnit || "g")}</span>
+        </div></td>
+        <td data-label="Time (s)"><div class="cell editable mono" contenteditable="true" data-id="${s.id}" data-field="timeSec">${esc(s.timeSec ?? "")}</div></td>
+        <td data-label="Ratio"><span class="chip mono" title="Yield ÷ Dose">${ratioText}</span>${s.isBaseline ? ` <span class="chip" title="Baseline recipe">baseline</span>` : ""}</td>
+        <td data-label="Result"><span class="tag" data-tag="${escAttr(s.resultTag || "—")}">${esc(s.resultTag || "—")}</span></td>
+        <td data-label="Δ vs baseline"><span class="chip mono" title="Compared to baseline for this bean">${esc(baselineDeltaSummary(s))}</span></td>
+        <td data-label="Actions">
+          <div class="rowActions">
+            <button class="iconBtn" data-action="select" data-id="${s.id}" title="Open details">▸</button>
+            <button class="iconBtn" data-action="clone" data-id="${s.id}" title="Clone to today">⧉</button>
+            <button class="iconBtn" data-action="delete" data-id="${s.id}" title="Delete">⌫</button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    renderDrawer();
+    renderKPIs(list);
+    renderCharts(list);
+    renderBaselines();
+  }
+
+  function openNewShot(){
+    modalOverlay.style.display = "block";
+    newShotForm.reset();
+    newShotForm.elements.date.value = todayISO();
+    newShotForm.elements.roast.value = "med";
+    newShotForm.elements.method.value = "Espresso";
+    newShotForm.elements.yieldUnit.value = "g";
+    newShotForm.elements.resultTag.value = "Good";
+    setTimeout(() => newShotForm.elements.bean.focus(), 30);
+  }
+  function closeModal(){ modalOverlay.style.display = "none"; }
+  function modalOverlayIsOpen(){ return modalOverlay.style.display === "block"; }
+
+  function openExportMenu(){
+    const choice = prompt("Export format:\n1 = JSON\n2 = CSV\n\nEnter 1 or 2:", "1");
+    if (!choice) return;
+    if (choice.trim() === "1") exportJSON();
+    if (choice.trim() === "2") exportCSV();
+  }
+  function exportJSON(){
+    const blob = new Blob([JSON.stringify(shots, null, 2)], {type:"application/json"});
+    downloadBlob(blob, `espresso-tracker-${todayISO()}.json`);
+  }
+  function exportCSV(){
+    const cols = ["date","bean","origin","roast","method","grinder","grindSetting","dose","yieldUnit","yieldValue","timeSec","ratio","temp","pressure","preinfusion","tasteNotes","resultTag","notes","isBaseline"];
+    const lines = [cols.join(",")];
+    shots.forEach(s => {
+      const row = cols.map(c => {
+        let v = (c === "ratio") ? (computeRatio(s) ?? "") : (s[c] ?? "");
+        return csvEscape(String(v));
+      });
+      lines.push(row.join(","));
+    });
+    const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+    downloadBlob(blob, `espresso-tracker-${todayISO()}.csv`);
+  }
+  const csvEscape = (s)=> /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
+  function downloadBlob(blob, filename){
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 250);
+  }
+  function openImportDialog(){
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const text = await file.text();
+      try{
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) throw new Error("Invalid JSON shape");
+        shots = data.map(x => {
+          const s = defaultShot();
+          Object.assign(s, x);
+          if (!s.id) s.id = uid();
+          s.ratio = computeRatio(s);
+          return s;
+        });
+        persistShots();
+        selectedId = null;
+        render();
+        toast("Imported JSON.");
+      }catch(err){
+        alert("Import failed: " + err.message);
+      }
+    };
+    input.click();
+  }
+
+  function compressImageToDataURL(file, maxDim=960, quality=0.82){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,w,h);
+          ctx.drawImage(img, 0,0,w,h);
+          resolve(c.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  let toastTimer = null;
+  function toast(msg){
+    clearTimeout(toastTimer);
+    let t = document.getElementById("toast");
+    if (!t){
+      t = document.createElement("div");
+      t.id = "toast";
+      t.style.position = "fixed";
+      t.style.left = "16px";
+      t.style.bottom = "16px";
+      t.style.zIndex = "80";
+      t.style.background = "rgba(17,17,17,0.92)";
+      t.style.color = "white";
+      t.style.padding = "10px 12px";
+      t.style.borderRadius = "12px";
+      t.style.fontSize = "13px";
+      t.style.maxWidth = "min(460px, calc(100vw - 32px))";
+      t.style.boxShadow = "0 12px 40px rgba(0,0,0,0.22)";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = "1";
+    toastTimer = setTimeout(() => { t.style.opacity = "0"; }, 1800);
+  }
+
+  window.__selectShot = (id) => { selectedId = id; render(); };
+  render();
+})();
+</script>
+</body>
+</html>
