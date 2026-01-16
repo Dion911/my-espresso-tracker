@@ -234,7 +234,34 @@
       td .cell{white-space:normal;overflow:visible;text-overflow:clip;}
       .tableTop{flex-direction:column;align-items:flex-start;}
     }
-  </style>
+  
+    /* --- iPhone-first simplification (overrides) --- */
+    @media (max-width: 980px), (pointer: coarse){
+      .app{grid-template-columns:1fr;}
+      .sidebar,.drawer{display:none !important;}
+      .main{padding:14px 12px 120px;}
+
+      /* Header stacks cleanly */
+      .header{flex-direction:column;align-items:stretch;gap:10px;padding:6px 0 12px;}
+      .titleBlock h2{font-size:22px;}
+      .titleBlock p{display:none;}
+
+      /* Controls: full-width fields + 2-up buttons */
+      .controls{justify-content:flex-start;}
+      .field{flex:1 1 100%;width:100%;}
+      .field input,.field select{min-width:0;width:100%;}
+      .btn{flex:1 1 calc(50% - 10px);min-width:0;justify-content:center;}
+
+      /* Make the table header usable on touch */
+      .tableTop{position:sticky;top:72px;z-index:4;background:#fcfcfc;}
+
+      /* Tighten cards */
+      .card{padding:10px;border-radius:16px;}
+      .kpiValue{font-size:16px;}
+      canvas{height:200px;}
+    }
+
+</style>
 </head>
 <body>
   <div class="app">
