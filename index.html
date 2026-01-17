@@ -9,52 +9,83 @@
 :root{
   --bg:#fafafa; --panel:#fff; --text:#101113; --muted:#6b6e76;
   --line:#e8e8ea; --hover:#f4f4f5; --danger:#c62f2f;
-  --radius:16px; --sans:-apple-system,BlinkMacSystemFont,Inter,system-ui,Arial;
+  --radius:18px; --sans:-apple-system,BlinkMacSystemFont,Inter,system-ui,Arial;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
 .wrap{max-width:820px;margin:0 auto;padding:16px}
 
 .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
-.title{font-weight:700;font-size:18px}
-.subtitle{font-size:13px;color:var(--muted)}
+.title{font-weight:800;font-size:30px;letter-spacing:-0.02em}
+.subtitle{font-size:16px;color:var(--muted);margin-top:2px}
 
 .btn{
   border:1px solid var(--line);
   background:#fff;
-  border-radius:14px;
+  border-radius:16px;
   padding:12px 14px;
-  font-weight:600;
+  font-weight:700;
   cursor:pointer;
+  font-size:16px;
 }
 .btnPrimary{background:#101113;color:#fff;border-color:#101113}
 .btnDanger{color:var(--danger);border-color:#f2c6c6}
+.btnGhost{background:transparent}
+.btnSmall{padding:10px 12px;border-radius:14px;font-size:15px}
 
 .card{
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:14px;
+  border-radius:24px;
+  padding:18px;
 }
-.list{display:flex;flex-direction:column;gap:10px}
+.list{display:flex;flex-direction:column;gap:14px}
 
-.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
 .chip{
-  padding:8px 12px;
+  padding:10px 14px;
   border-radius:999px;
   border:1px solid var(--line);
-  font-size:13px;
+  font-size:16px;
   cursor:pointer;
+  user-select:none;
 }
 .chip.active{background:#101113;color:#fff;border-color:#101113}
 
 input,select,textarea{
-  width:100%;padding:14px;border-radius:14px;border:1px solid var(--line);
-  font-size:16px;
+  width:100%;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  font-size:18px;
+  outline:none;
 }
-label{font-size:13px;color:var(--muted)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:16px;color:var(--muted);display:block;margin-top:16px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hidden{display:none}
+.row{display:flex;gap:10px;align-items:center}
+hr.sep{border:none;border-top:1px solid var(--line);margin:16px 0}
+
+.kicker{font-size:16px;color:var(--muted);margin-top:4px}
+.beanName{font-weight:800;font-size:26px;line-height:1.1}
+.metaLine{font-size:20px;color:#1a1b1f;letter-spacing:-0.01em;margin-top:8px}
+.metaMuted{font-size:20px;color:var(--muted);margin-top:6px}
+.actions{display:flex;gap:12px;margin-top:14px}
+.actions .btn{min-width:120px}
+
+.flavorBlock{margin-top:10px}
+.flavorRow{margin-top:14px}
+.flavorTitle{font-size:16px;color:var(--muted);margin-bottom:8px}
+
+.footerBtns{margin-top:18px}
+.footerBtns .btnPrimary{width:100%;padding:18px 16px;border-radius:22px;font-size:18px}
+.footerBtns .btnDanger{margin-top:12px}
+
+@media (max-width:420px){
+  .title{font-size:28px}
+  .beanName{font-size:24px}
+  .metaLine,.metaMuted{font-size:18px}
+}
 </style>
 </head>
 
@@ -68,11 +99,10 @@ label{font-size:13px;color:var(--muted)}
       <div class="title">Espresso Tracker</div>
       <div class="subtitle" id="today"></div>
     </div>
-    <button class="btn" onclick="view='more';render()">⋯</button>
   </div>
 
-  <button class="btn btnPrimary" style="width:100%;margin-bottom:12px"
-    onclick="openNew()">＋ New Shot</button>
+  <button class="btn btnPrimary" style="width:100%;margin:12px 0 18px"
+    id="btnNewTop">＋ New Shot</button>
 
   <div class="list" id="shotList"></div>
 </section>
@@ -80,138 +110,580 @@ label{font-size:13px;color:var(--muted)}
 <!-- NEW SHOT -->
 <section id="new" class="hidden">
   <div class="top">
-    <div class="title" id="formTitle">New Shot</div>
-    <button class="btn" onclick="back()">Cancel</button>
+    <div>
+      <div class="title" id="formTitle">New Shot</div>
+      <div class="kicker" id="formKicker">Fast log</div>
+    </div>
+    <button class="btn btnGhost" id="btnCancel">Cancel</button>
   </div>
 
   <label>Bean</label>
-  <input id="bean">
+  <div class="row">
+    <input id="bean" list="beanList" placeholder="Type bean name…" autocomplete="off">
+    <button class="btn btnSmall" id="btnAddBean" type="button">+ Add</button>
+  </div>
+  <datalist id="beanList"></datalist>
 
-  <label style="margin-top:10px">Bean Type</label>
-  <div class="chips" id="beanType"></div>
-  <input id="customBlend" class="hidden" placeholder="Describe blend">
+  <label>Bean Type</label>
+  <div class="chips" id="beanTypeChips"></div>
+  <input id="customBlend" class="hidden" placeholder="Describe blend (e.g., 70/30 Arabica-Robusta)">
 
-  <label style="margin-top:10px">Brew Method</label>
-  <select id="brewMethod" onchange="toggleMethod()">
-    <option>Espresso</option>
-    <option>Pour Over</option>
-    <option>Cold Brew</option>
+  <label>Brew Method</label>
+  <select id="brewMethod">
+    <option value="Espresso">Espresso</option>
+    <option value="Pour Over">Pour Over</option>
+    <option value="Cold Brew">Cold Brew</option>
   </select>
 
-  <div id="espressoFields">
-    <div class="grid2">
-      <input id="grind" placeholder="Grind">
-      <input id="dose" placeholder="Dose (g)">
-      <input id="yield" placeholder="Yield (g)">
-      <input id="time" placeholder="Time (s)">
+  <div id="fieldsBlock">
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <label id="lblGrind" style="margin-top:0">Grind</label>
+        <input id="grind" placeholder="30">
+      </div>
+      <div>
+        <label id="lblDose" style="margin-top:0">Dose</label>
+        <input id="dose" placeholder="18g">
+      </div>
+      <div>
+        <label id="lblYield" style="margin-top:0">Yield</label>
+        <input id="yield" placeholder="36g / 30ml">
+      </div>
+      <div>
+        <label id="lblTime" style="margin-top:0">Time</label>
+        <input id="time" placeholder="28s">
+      </div>
     </div>
   </div>
 
-  <label style="margin-top:10px">Flavor Profile</label>
-  <div id="flavor"></div>
+  <label>Flavor Profile</label>
+  <div class="flavorBlock" id="flavorBlock"></div>
 
-  <button class="btn btnPrimary" style="margin-top:14px;width:100%" onclick="save()">Save</button>
-  <button class="btn btnDanger hidden" id="deleteBtn" onclick="del()">Delete</button>
+  <div class="footerBtns">
+    <button class="btn btnPrimary" id="btnSave">Save</button>
+    <button class="btn btnDanger hidden" id="btnDelete">Delete</button>
+  </div>
 </section>
 
 </div>
 
 <script>
-let shots=JSON.parse(localStorage.getItem('shots')||'[]');
-let view='service', edit=null;
+/**
+ * Storage keys
+ * - shots: array of shot objects
+ * - beanLibrary: array of strings
+ */
+const STORAGE_SHOTS = 'shots';
+const STORAGE_BEANS = 'beanLibrary';
 
-const beanTypes=['Arabica','Robusta','Liberica','Custom Blend'];
-const flavors=['Acidity','Sweetness','Body','Bitterness'];
+let shots = safeParse(localStorage.getItem(STORAGE_SHOTS), []);
+let beanLibrary = safeParse(localStorage.getItem(STORAGE_BEANS), []);
 
-function today(){
-  const d=new Date();
-  return d.toISOString().slice(0,10);
-}
-document.getElementById('today').textContent='Today · '+today();
+let view = 'service';
+let editingId = null;
 
-function render(){
-  document.getElementById('service').classList.toggle('hidden',view!=='service');
-  document.getElementById('new').classList.toggle('hidden',view!=='new');
+const BEAN_TYPES = ['Arabica','Robusta','Liberica','Custom Blend'];
+const FLAVOR_KEYS = [
+  { key:'acidity', label:'Acidity' },
+  { key:'sweetness', label:'Sweetness' },
+  { key:'body', label:'Body' },
+  { key:'bitterness', label:'Bitterness' }
+];
+const FLAVOR_LEVELS = ['Low','Med','High'];
 
-  const list=document.getElementById('shotList');
-  list.innerHTML='';
-  shots.filter(s=>s.date===today()).reverse().forEach(s=>{
-    const c=document.createElement('div');
-    c.className='card';
-    c.innerHTML=`
-      <strong>${s.bean}</strong><br>
-      <span style="color:#6b6e76">${s.beanType} · ${s.brewMethod}</span><br>
-      grind ${s.grind||''} · ${s.dose||''}g → ${s.yield||''}g · ${s.time||''}s<br>
-      <small>${s.date}</small><br>
-      <button class="btn" onclick="editShot('${s.id}')">Edit</button>
-      <button class="btn btnDanger" onclick="remove('${s.id}')">Delete</button>
-    `;
-    list.appendChild(c);
-  });
-}
+const els = {
+  service: document.getElementById('service'),
+  new: document.getElementById('new'),
+  today: document.getElementById('today'),
+  shotList: document.getElementById('shotList'),
 
-function openNew(){
-  edit=null; view='new';
-  document.getElementById('formTitle').textContent='New Shot';
-  document.getElementById('deleteBtn').classList.add('hidden');
+  btnNewTop: document.getElementById('btnNewTop'),
+  btnCancel: document.getElementById('btnCancel'),
+  btnSave: document.getElementById('btnSave'),
+  btnDelete: document.getElementById('btnDelete'),
+  btnAddBean: document.getElementById('btnAddBean'),
+
+  formTitle: document.getElementById('formTitle'),
+  formKicker: document.getElementById('formKicker'),
+
+  bean: document.getElementById('bean'),
+  beanList: document.getElementById('beanList'),
+
+  beanTypeChips: document.getElementById('beanTypeChips'),
+  customBlend: document.getElementById('customBlend'),
+
+  brewMethod: document.getElementById('brewMethod'),
+
+  lblGrind: document.getElementById('lblGrind'),
+  lblDose: document.getElementById('lblDose'),
+  lblYield: document.getElementById('lblYield'),
+  lblTime: document.getElementById('lblTime'),
+
+  grind: document.getElementById('grind'),
+  dose: document.getElementById('dose'),
+  yield: document.getElementById('yield'),
+  time: document.getElementById('time'),
+
+  flavorBlock: document.getElementById('flavorBlock')
+};
+
+let currentBeanType = 'Arabica';
+let currentFlavor = { acidity:null, sweetness:null, body:null, bitterness:null };
+
+init();
+
+function init(){
+  // Header date
+  els.today.textContent = `Today · ${fmtDate(new Date())}`;
+
+  // Bean type chips
+  renderBeanTypeChips();
+
+  // Flavor chips UI
+  renderFlavorChips();
+
+  // Bean suggestions
+  normalizeBeanLibrary();
+  renderBeanDatalist();
+
+  // Events
+  els.btnNewTop.addEventListener('click', openNew);
+  els.btnCancel.addEventListener('click', backToService);
+  els.btnSave.addEventListener('click', saveShot);
+  els.btnDelete.addEventListener('click', deleteCurrentShot);
+  els.btnAddBean.addEventListener('click', addBeanFromPrompt);
+
+  els.brewMethod.addEventListener('change', applyMethodLabels);
+
+  // If user types a bean not in library, we add on save.
+  // But also allow quick add by button.
+
+  applyMethodLabels();
   render();
 }
 
-function save(){
-  const s={
-    id:edit||Math.random().toString(36),
-    date:today(),
-    bean:bean.value,
-    beanType:currentBeanType,
-    brewMethod:brewMethod.value,
-    grind:grind.value,
-    dose:dose.value,
-    yield:yield.value,
-    time:time.value
-  };
-  shots=edit?shots.map(x=>x.id===edit?s:x):shots.concat(s);
-  localStorage.setItem('shots',JSON.stringify(shots));
-  back();
-}
-
-function back(){ view='service'; render(); }
-
-function editShot(id){
-  const s=shots.find(x=>x.id===id);
-  edit=id; view='new';
-  bean.value=s.bean;
-  grind.value=s.grind;
-  dose.value=s.dose;
-  yield.value=s.yield;
-  time.value=s.time;
-  document.getElementById('deleteBtn').classList.remove('hidden');
-  render();
-}
-
-function remove(id){
-  if(confirm('Delete?')){
-    shots=shots.filter(x=>x.id!==id);
-    localStorage.setItem('shots',JSON.stringify(shots));
-    render();
+function safeParse(txt, fallback){
+  try{
+    if(!txt) return fallback;
+    const v = JSON.parse(txt);
+    return (v===null || v===undefined) ? fallback : v;
+  }catch(e){
+    return fallback;
   }
 }
 
-let currentBeanType='Arabica';
-const bt=document.getElementById('beanType');
-beanTypes.forEach(t=>{
-  const b=document.createElement('div');
-  b.className='chip'+(t==='Arabica'?' active':'');
-  b.textContent=t;
-  b.onclick=()=>{
-    currentBeanType=t;
-    [...bt.children].forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    document.getElementById('customBlend').classList.toggle('hidden',t!=='Custom Blend');
-  };
-  bt.appendChild(b);
-});
+function persist(){
+  localStorage.setItem(STORAGE_SHOTS, JSON.stringify(shots));
+  localStorage.setItem(STORAGE_BEANS, JSON.stringify(beanLibrary));
+}
 
-render();
+function normalizeBeanLibrary(){
+  // Ensure unique, trimmed, non-empty
+  const set = new Set();
+  beanLibrary.forEach(b=>{
+    const t = (b||'').toString().trim();
+    if(t) set.add(t);
+  });
+  beanLibrary = Array.from(set);
+  // Sort A-Z
+  beanLibrary.sort((a,b)=>a.localeCompare(b));
+  persist();
+}
+
+function renderBeanDatalist(){
+  els.beanList.innerHTML = beanLibrary.map(b=>`<option value="${escapeHtml(b)}"></option>`).join('');
+}
+
+function addBeanToLibrary(name){
+  const t = (name||'').toString().trim();
+  if(!t) return;
+  if(!beanLibrary.includes(t)){
+    beanLibrary.push(t);
+    normalizeBeanLibrary();
+    renderBeanDatalist();
+  }
+}
+
+function addBeanFromPrompt(){
+  const v = prompt('Add bean name:');
+  if(!v) return;
+  addBeanToLibrary(v);
+  els.bean.value = v.trim();
+  els.bean.focus();
+}
+
+function renderBeanTypeChips(){
+  els.beanTypeChips.innerHTML = '';
+  BEAN_TYPES.forEach(t=>{
+    const d = document.createElement('div');
+    d.className = 'chip' + (t==='Arabica' ? ' active' : '');
+    d.textContent = t;
+    d.addEventListener('click', ()=>{
+      currentBeanType = t;
+      [...els.beanTypeChips.children].forEach(x=>x.classList.remove('active'));
+      d.classList.add('active');
+      els.customBlend.classList.toggle('hidden', t!=='Custom Blend');
+      if(t!=='Custom Blend') els.customBlend.value = '';
+    });
+    els.beanTypeChips.appendChild(d);
+  });
+}
+
+function renderFlavorChips(){
+  els.flavorBlock.innerHTML = '';
+  FLAVOR_KEYS.forEach(row=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'flavorRow';
+
+    const title = document.createElement('div');
+    title.className = 'flavorTitle';
+    title.textContent = row.label;
+    wrap.appendChild(title);
+
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+
+    // Optional: allow clearing by tapping selected again (we implement).
+    FLAVOR_LEVELS.forEach(level=>{
+      const c = document.createElement('div');
+      c.className = 'chip';
+      c.textContent = level;
+      c.addEventListener('click', ()=>{
+        const cur = currentFlavor[row.key];
+        if(cur === level){
+          currentFlavor[row.key] = null;
+          c.classList.remove('active');
+        }else{
+          currentFlavor[row.key] = level;
+          [...chips.children].forEach(x=>x.classList.remove('active'));
+          c.classList.add('active');
+        }
+      });
+      chips.appendChild(c);
+    });
+
+    wrap.appendChild(chips);
+    els.flavorBlock.appendChild(wrap);
+  });
+}
+
+function applyFlavorToUI(flavorProfile){
+  currentFlavor = {
+    acidity: flavorProfile?.acidity ?? null,
+    sweetness: flavorProfile?.sweetness ?? null,
+    body: flavorProfile?.body ?? null,
+    bitterness: flavorProfile?.bitterness ?? null
+  };
+
+  // Update chip actives
+  const rows = els.flavorBlock.querySelectorAll('.flavorRow');
+  rows.forEach((rowEl, idx)=>{
+    const key = FLAVOR_KEYS[idx].key;
+    const chips = rowEl.querySelectorAll('.chip');
+    chips.forEach(ch=>{
+      ch.classList.toggle('active', ch.textContent === currentFlavor[key]);
+    });
+  });
+}
+
+function applyBeanTypeToUI(beanType){
+  currentBeanType = beanType || 'Arabica';
+  [...els.beanTypeChips.children].forEach(ch=>{
+    ch.classList.toggle('active', ch.textContent === currentBeanType);
+  });
+  els.customBlend.classList.toggle('hidden', currentBeanType!=='Custom Blend');
+}
+
+function applyMethodLabels(){
+  const m = els.brewMethod.value;
+
+  // Default visible grind
+  els.lblGrind.textContent = 'Grind';
+  els.grind.placeholder = '30';
+  els.grind.parentElement.classList.remove('hidden');
+
+  if(m === 'Espresso'){
+    els.lblDose.textContent = 'Dose';
+    els.dose.placeholder = '18g';
+
+    els.lblYield.textContent = 'Yield';
+    els.yield.placeholder = '36g / 30ml';
+
+    els.lblTime.textContent = 'Time';
+    els.time.placeholder = '28s';
+
+    els.grind.parentElement.classList.remove('hidden');
+  }
+
+  if(m === 'Pour Over'){
+    // For pour over: use Dose / Water / Time, hide grind
+    els.grind.parentElement.classList.add('hidden');
+
+    els.lblDose.textContent = 'Dose';
+    els.dose.placeholder = '18g';
+
+    els.lblYield.textContent = 'Water';
+    els.yield.placeholder = '280g';
+
+    els.lblTime.textContent = 'Time';
+    els.time.placeholder = '3:00';
+  }
+
+  if(m === 'Cold Brew'){
+    // For cold brew: use Dose / Water / Brew Time, hide grind
+    els.grind.parentElement.classList.add('hidden');
+
+    els.lblDose.textContent = 'Coffee';
+    els.dose.placeholder = '60g';
+
+    els.lblYield.textContent = 'Water';
+    els.yield.placeholder = '900g';
+
+    els.lblTime.textContent = 'Brew Time';
+    els.time.placeholder = '12h';
+  }
+}
+
+function todayKey(d=new Date()){
+  return d.toISOString().slice(0,10);
+}
+
+function fmtDate(d){
+  // YYYY-MM-DD
+  const iso = d.toISOString().slice(0,10);
+  return iso;
+}
+
+function fmtTime(d){
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${hh}:${mm}`;
+}
+
+function fmtStamp(iso){
+  // iso string -> "YYYY-MM-DD · HH:MM"
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
+  return `${fmtDate(d)} · ${fmtTime(d)}`;
+}
+
+function render(){
+  els.service.classList.toggle('hidden', view!=='service');
+  els.new.classList.toggle('hidden', view!=='new');
+
+  if(view==='service'){
+    renderServiceList();
+  }
+}
+
+function renderServiceList(){
+  const list = els.shotList;
+  list.innerHTML = '';
+
+  const today = todayKey();
+  const todays = shots.filter(s=>{
+    // use createdAt date if present; fallback to s.date
+    const date = (s.createdAt ? s.createdAt.slice(0,10) : s.date);
+    return date === today;
+  });
+
+  // Newest first
+  todays.sort((a,b)=> (new Date(b.createdAt||b.date).getTime()) - (new Date(a.createdAt||a.date).getTime()));
+
+  if(todays.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `<div class="metaMuted">No shots logged today yet.</div>`;
+    list.appendChild(empty);
+    return;
+  }
+
+  todays.forEach(s=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const bean = escapeHtml(s.bean || 'Untitled bean');
+    const type = escapeHtml(s.beanType || '—');
+    const method = escapeHtml(s.brewMethod || 'Espresso');
+
+    const line = formatShotLine(s);
+    const stamp = fmtStamp(s.createdAt) || escapeHtml(s.date || '');
+
+    card.innerHTML = `
+      <div class="beanName">${bean}</div>
+      <div class="metaMuted">${type} · ${method}</div>
+      <div class="metaLine">${escapeHtml(line)}</div>
+      <div class="metaMuted" style="margin-top:10px">${escapeHtml(stamp)}</div>
+
+      <div class="actions">
+        <button class="btn btnSmall" data-action="edit" data-id="${escapeHtml(s.id)}">Edit</button>
+        <button class="btn btnDanger btnSmall" data-action="delete" data-id="${escapeHtml(s.id)}">Delete</button>
+      </div>
+    `;
+
+    card.querySelector('[data-action="edit"]').addEventListener('click', ()=> openEdit(s.id));
+    card.querySelector('[data-action="delete"]').addEventListener('click', ()=> quickDelete(s.id));
+
+    list.appendChild(card);
+  });
+}
+
+function formatShotLine(s){
+  const m = s.brewMethod || 'Espresso';
+
+  if(m === 'Pour Over'){
+    // grind hidden; dose=coffee, yield=water
+    const dose = s.dose || '';
+    const water = s.yield || '';
+    const time = s.time || '';
+    return `${dose} → ${water} · ${time}`;
+  }
+
+  if(m === 'Cold Brew'){
+    const coffee = s.dose || '';
+    const water = s.yield || '';
+    const bt = s.time || '';
+    return `${coffee} → ${water} · ${bt}`;
+  }
+
+  // Espresso default
+  const grind = s.grind || '';
+  const dose = s.dose || '';
+  const yieldv = s.yield || '';
+  const time = s.time || '';
+  return `grind ${grind} · ${dose} → ${yieldv} · ${time}`;
+}
+
+function openNew(){
+  editingId = null;
+  view = 'new';
+  els.formTitle.textContent = 'New Shot';
+  els.formKicker.textContent = 'Fast log';
+  els.btnDelete.classList.add('hidden');
+
+  // Defaults
+  const last = shots.length ? shots[shots.length-1] : null;
+
+  els.bean.value = last?.bean || '';
+  addBeanToLibrary(els.bean.value);
+
+  applyBeanTypeToUI(last?.beanType || 'Arabica');
+  els.customBlend.value = last?.customBlend || '';
+
+  els.brewMethod.value = last?.brewMethod || 'Espresso';
+  applyMethodLabels();
+
+  els.grind.value = last?.grind || '';
+  els.dose.value = last?.dose || '';
+  els.yield.value = last?.yield || '';
+  els.time.value = last?.time || '';
+
+  applyFlavorToUI(last?.flavorProfile || {});
+
+  render();
+  els.bean.focus();
+}
+
+function openEdit(id){
+  const s = shots.find(x=>x.id===id);
+  if(!s) return;
+
+  editingId = id;
+  view = 'new';
+  els.formTitle.textContent = 'Edit Shot';
+  els.formKicker.textContent = fmtStamp(s.createdAt) || '';
+  els.btnDelete.classList.remove('hidden');
+
+  els.bean.value = s.bean || '';
+  addBeanToLibrary(els.bean.value);
+
+  applyBeanTypeToUI(s.beanType || 'Arabica');
+  els.customBlend.value = s.customBlend || '';
+
+  els.brewMethod.value = s.brewMethod || 'Espresso';
+  applyMethodLabels();
+
+  els.grind.value = s.grind || '';
+  els.dose.value = s.dose || '';
+  els.yield.value = s.yield || '';
+  els.time.value = s.time || '';
+
+  applyFlavorToUI(s.flavorProfile || {});
+
+  render();
+}
+
+function backToService(){
+  view = 'service';
+  render();
+}
+
+function saveShot(){
+  const bean = (els.bean.value || '').trim();
+  if(!bean){
+    alert('Please enter a bean name.');
+    els.bean.focus();
+    return;
+  }
+  addBeanToLibrary(bean);
+
+  const beanType = currentBeanType || 'Arabica';
+  const customBlend = (beanType === 'Custom Blend') ? (els.customBlend.value || '').trim() : '';
+
+  const brewMethod = els.brewMethod.value || 'Espresso';
+
+  const shot = {
+    id: editingId || ('s_' + Math.random().toString(36).slice(2,10)),
+    createdAt: editingId ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    date: todayKey(), // legacy fallback
+    bean,
+    beanType,
+    customBlend,
+    brewMethod,
+    grind: (brewMethod==='Espresso') ? (els.grind.value || '').trim() : '', // store only for espresso
+    dose: (els.dose.value || '').trim(),
+    yield: (els.yield.value || '').trim(),
+    time: (els.time.value || '').trim(),
+    flavorProfile: {
+      acidity: currentFlavor.acidity,
+      sweetness: currentFlavor.sweetness,
+      body: currentFlavor.body,
+      bitterness: currentFlavor.bitterness
+    }
+  };
+
+  if(editingId){
+    shots = shots.map(x=> x.id===editingId ? shot : x);
+  }else{
+    shots.push(shot);
+  }
+
+  persist();
+  backToService();
+}
+
+function deleteCurrentShot(){
+  if(!editingId) return;
+  quickDelete(editingId, true);
+}
+
+function quickDelete(id, fromEdit=false){
+  if(!confirm('Delete this shot?')) return;
+  shots = shots.filter(x=>x.id!==id);
+  persist();
+  if(fromEdit) backToService();
+  else renderServiceList();
+}
+
+function escapeHtml(s){
+  return (s??'').toString()
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
 </script>
 </body>
 </html>
