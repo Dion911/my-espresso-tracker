@@ -707,10 +707,17 @@ function applyMethodLabels(){
 
 /* ---------- Date utils ---------- */
 function todayKey(d=new Date()){
-  return d.toISOString().slice(0,10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
 }
 function fmtDate(d){
-  return d.toISOString().slice(0,10);
+  return todayKey(d);
+}
+
 }
 function fmtTime(d){
   const hh = String(d.getHours()).padStart(2,'0');
