@@ -144,8 +144,6 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
 }
 .dot{width:8px;height:8px;border-radius:999px;background:#bbb}
 
-.help{font-size:13px;color:var(--muted);line-height:1.35}
-
 @media (max-width:420px){
   .wrap{padding:12px}
   .title{font-size:26px}
@@ -165,6 +163,7 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
     <div>
       <div class="title">Espresso Tracker</div>
       <div class="subtitle" id="today"></div>
+      <div class="subtitle" id="rangeSubtitle" style="margin-top:6px"></div>
     </div>
   </div>
 
@@ -283,7 +282,7 @@ const RESULT_TAGS = [
 
 const RANGE_TABS = [
   { key:'today', label:'Today' },
-  { key:'week', label:'Week' },
+  { key:'thisWeek', label:'This Week (Mon–Sun)' },
   { key:'month', label:'Month' }
 ];
 let range = 'today'; // default
@@ -293,6 +292,7 @@ const els = {
   service: document.getElementById('service'),
   new: document.getElementById('new'),
   today: document.getElementById('today'),
+  rangeSubtitle: document.getElementById('rangeSubtitle'),
   shotList: document.getElementById('shotList'),
   stats: document.getElementById('stats'),
   rangeTabs: document.getElementById('rangeTabs'),
@@ -335,13 +335,13 @@ const els = {
 
 let currentBeanType = 'Arabica';
 let currentFlavor = { acidity:null, sweetness:null, body:null, bitterness:null };
-let currentResultTag = null;     // e.g., "Perfect"
-let currentResultCustom = '';    // for "Custom"
+let currentResultTag = null;
+let currentResultCustom = '';
 
 init();
 
 function init(){
-  els.today.textContent = `Today · ${prettyDate(new Date())}`;
+  els.today.textContent = `Today · ${fmtDate(new Date())}`;
 
   renderRangeTabs();
   renderBeanTypeChips();
@@ -368,6 +368,46 @@ function init(){
   render();
 }
 
+/* ---------- Range helpers ---------- */
+function weekMonSunBounds(now=new Date()){
+  const day = now.getDay(); // 0=Sun, 1=Mon
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMon);
+  start.setHours(0,0,0,0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23,59,59,999);
+
+  return { start, end };
+}
+
+function shortMD(d){
+  return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+}
+
+function prettyDayLabel(dateStr){
+  const today = todayKey();
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yesterday = todayKey(y);
+
+  if(dateStr === today) return 'Today';
+  if(dateStr === yesterday) return 'Yesterday';
+
+  const d = new Date(dateStr + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return dateStr;
+
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+/* ---------- Core ---------- */
 function safeParse(txt, fallback){
   try{ return txt ? JSON.parse(txt) : fallback; } catch(e){ return fallback; }
 }
@@ -566,11 +606,6 @@ function fmtDate(d){
   return d.toISOString().slice(0,10);
 }
 
-function prettyDate(d){
-  // still stable + simple: 2026-01-18 (keeps your current format)
-  return fmtDate(d);
-}
-
 function fmtTime(d){
   const hh = String(d.getHours()).padStart(2,'0');
   const mm = String(d.getMinutes()).padStart(2,'0');
@@ -607,7 +642,6 @@ function renderRangeTabs(){
 }
 
 function getShotDateISO(s){
-  // Reliable timestamp even if createdAt is missing.
   if(s.createdAt) return s.createdAt;
   if(s.date) return s.date + 'T00:00:00.000Z';
   return null;
@@ -627,12 +661,8 @@ function withinRange(shot){
     return date === today;
   }
 
-  if(range === 'week'){
-    const start = new Date(now);
-    start.setDate(start.getDate() - 6);
-    start.setHours(0,0,0,0);
-    const end = new Date(now);
-    end.setHours(23,59,59,999);
+  if(range === 'thisWeek'){
+    const { start, end } = weekMonSunBounds(now);
     return d >= start && d <= end;
   }
 
@@ -681,7 +711,6 @@ function sortShots(arr){
       const B = (b.bean||'').toString().trim().toLowerCase();
       if(A < B) return -1;
       if(A > B) return 1;
-      // tie-break: newest first
       return (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime());
     });
     return copy;
@@ -692,7 +721,6 @@ function sortShots(arr){
     return copy;
   }
 
-  // newest
   copy.sort((a,b)=> (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime()));
   return copy;
 }
@@ -700,6 +728,14 @@ function sortShots(arr){
 function renderService(){
   const list = els.shotList;
   list.innerHTML = '';
+
+  // Range subtitle (only for This Week)
+  if(range === 'thisWeek'){
+    const { start, end } = weekMonSunBounds(new Date());
+    els.rangeSubtitle.textContent = `${shortMD(start)} – ${shortMD(end)}`;
+  }else{
+    els.rangeSubtitle.textContent = '';
+  }
 
   let filtered = shots.filter(withinRange);
   filtered = sortShots(filtered);
@@ -714,13 +750,13 @@ function renderService(){
     return;
   }
 
-  // Always group by day so the date is visible in every range (including "Today").
+  // Always group so dates are always visible.
   const grouped = groupByDay(filtered);
 
   grouped.forEach(([day, items])=>{
     const h = document.createElement('div');
     h.className = 'dayHeader';
-    h.textContent = `${day} · ${items.length} shot${items.length>1?'s':''}`;
+    h.textContent = `${prettyDayLabel(day)} · ${items.length} shot${items.length>1?'s':''}`;
     list.appendChild(h);
 
     items.forEach(s=>{
@@ -767,12 +803,8 @@ function renderService(){
 
 function formatShotLine(s){
   const m = s.brewMethod || 'Espresso';
-  if(m === 'Pour Over'){
-    return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
-  }
-  if(m === 'Cold Brew'){
-    return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
-  }
+  if(m === 'Pour Over') return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
+  if(m === 'Cold Brew') return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
   return `grind ${s.grind||''} · ${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
 }
 
