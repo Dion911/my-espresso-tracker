@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Espresso Tracker — Service Mode</title>
-  
+
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
@@ -69,7 +69,7 @@ textarea{min-height:92px;resize:vertical}
 label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hidden{display:none}
-.row{display:flex;gap:10px;align-items:center}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 .kicker{font-size:15px;color:var(--muted);margin-top:4px}
 .beanName{font-weight:800;font-size:23px;line-height:1.12}
@@ -149,6 +149,8 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
 }
 .dot{width:8px;height:8px;border-radius:999px;background:#bbb}
 
+.help{font-size:13px;color:var(--muted);line-height:1.35;margin-top:8px}
+
 @media (max-width:420px){
   .wrap{padding:12px}
   .title{font-size:26px}
@@ -173,6 +175,13 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   </div>
 
   <button class="btn btnPrimary" style="width:100%;margin:10px 0 12px" id="btnNewTop">＋ New Shot</button>
+
+  <!-- Backup buttons -->
+  <div class="row" style="gap:10px;margin-bottom:12px">
+    <button class="btn btnSmall" id="btnExport" type="button">Export</button>
+    <button class="btn btnSmall" id="btnImport" type="button">Import</button>
+    <input id="importFile" type="file" accept="application/json" class="hidden">
+  </div>
 
   <!-- Summary + Range Tabs + Sort -->
   <div class="summaryBar">
@@ -203,6 +212,11 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
     </div>
     <button class="btn btnGhost" id="btnCancel">Cancel</button>
   </div>
+
+  <!-- DATE PICKER -->
+  <label>Date</label>
+  <div class="chips" id="dateChips"></div>
+  <div class="help">Choose “Yesterday” to re-log past shots.</div>
 
   <label>Bean</label>
   <div class="row">
@@ -290,8 +304,12 @@ const RANGE_TABS = [
   { key:'thisWeek', label:'This Week (Mon–Sun)' },
   { key:'month', label:'Month' }
 ];
-let range = 'today'; // default
-let sortMode = 'newest'; // default
+
+let range = 'today';
+let sortMode = 'newest';
+
+/** ✅ NEW: selectedDate lets you log Yesterday */
+let selectedDate = todayKey(); // default today
 
 const els = {
   service: document.getElementById('service'),
@@ -308,6 +326,12 @@ const els = {
   btnSave: document.getElementById('btnSave'),
   btnDelete: document.getElementById('btnDelete'),
   btnAddBean: document.getElementById('btnAddBean'),
+
+  btnExport: document.getElementById('btnExport'),
+  btnImport: document.getElementById('btnImport'),
+  importFile: document.getElementById('importFile'),
+
+  dateChips: document.getElementById('dateChips'),
 
   formTitle: document.getElementById('formTitle'),
   formKicker: document.getElementById('formKicker'),
@@ -349,6 +373,7 @@ function init(){
   els.today.textContent = `Today · ${fmtDate(new Date())}`;
 
   renderRangeTabs();
+  renderDateChips();
   renderBeanTypeChips();
   renderFlavorChips();
   renderResultChips();
@@ -369,8 +394,39 @@ function init(){
     renderService();
   });
 
+  // Backup handlers
+  els.btnExport.addEventListener('click', exportData);
+  els.btnImport.addEventListener('click', ()=> els.importFile.click());
+  els.importFile.addEventListener('change', importData);
+
   applyMethodLabels();
   render();
+}
+
+/* ---------- Date helpers ---------- */
+function yesterdayKey(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return todayKey(d);
+}
+
+function renderDateChips(){
+  const options = [
+    { key: todayKey(), label: 'Today' },
+    { key: yesterdayKey(), label: 'Yesterday' }
+  ];
+
+  els.dateChips.innerHTML = '';
+  options.forEach(opt=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (opt.key === selectedDate ? ' active' : '');
+    c.textContent = opt.label;
+    c.addEventListener('click', ()=>{
+      selectedDate = opt.key;
+      renderDateChips();
+    });
+    els.dateChips.appendChild(c);
+  });
 }
 
 /* ---------- Range helpers ---------- */
@@ -405,14 +461,10 @@ function prettyDayLabel(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
   if(Number.isNaN(d.getTime())) return dateStr;
 
-  return d.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
+  return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
 }
 
-/* ---------- Core ---------- */
+/* ---------- Storage ---------- */
 function safeParse(txt, fallback){
   try{ return txt ? JSON.parse(txt) : fallback; } catch(e){ return fallback; }
 }
@@ -422,6 +474,7 @@ function persist(){
   localStorage.setItem(STORAGE_BEANS, JSON.stringify(beanLibrary));
 }
 
+/* ---------- Beans ---------- */
 function normalizeBeanLibrary(){
   const set = new Set();
   beanLibrary.forEach(b=>{
@@ -452,6 +505,22 @@ function addBeanFromPrompt(){
   addBeanToLibrary(v);
   els.bean.value = v.trim();
   els.bean.focus();
+}
+
+/* ---------- Chips ---------- */
+function renderRangeTabs(){
+  els.rangeTabs.innerHTML = '';
+  RANGE_TABS.forEach(t=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (t.key===range ? ' active':'');
+    c.textContent = t.label;
+    c.addEventListener('click', ()=>{
+      range = t.key;
+      renderRangeTabs();
+      renderService();
+    });
+    els.rangeTabs.appendChild(c);
+  });
 }
 
 function renderBeanTypeChips(){
@@ -569,6 +638,7 @@ function applyResultToUI(result){
   els.resultCustom.value = (currentResultTag === 'Custom') ? currentResultCustom : '';
 }
 
+/* ---------- Method labels ---------- */
 function applyMethodLabels(){
   const m = els.brewMethod.value;
 
@@ -603,6 +673,7 @@ function applyMethodLabels(){
   }
 }
 
+/* ---------- Date utils ---------- */
 function todayKey(d=new Date()){
   return d.toISOString().slice(0,10);
 }
@@ -624,32 +695,17 @@ function fmtStamp(iso){
   return `${fmtDate(d)} · ${fmtTime(d)}`;
 }
 
+function getShotDateISO(s){
+  if(s.createdAt) return s.createdAt;
+  if(s.date) return s.date + 'T12:00:00.000Z';
+  return null;
+}
+
+/* ---------- Render ---------- */
 function render(){
   els.service.classList.toggle('hidden', view!=='service');
   els.new.classList.toggle('hidden', view!=='new');
-
   if(view==='service') renderService();
-}
-
-function renderRangeTabs(){
-  els.rangeTabs.innerHTML = '';
-  RANGE_TABS.forEach(t=>{
-    const c = document.createElement('div');
-    c.className = 'chip' + (t.key===range ? ' active':'');
-    c.textContent = t.label;
-    c.addEventListener('click', ()=>{
-      range = t.key;
-      renderRangeTabs();
-      renderService();
-    });
-    els.rangeTabs.appendChild(c);
-  });
-}
-
-function getShotDateISO(s){
-  if(s.createdAt) return s.createdAt;
-  if(s.date) return s.date + 'T00:00:00.000Z';
-  return null;
 }
 
 function withinRange(shot){
@@ -734,7 +790,6 @@ function renderService(){
   const list = els.shotList;
   list.innerHTML = '';
 
-  // Range subtitle (only for This Week)
   if(range === 'thisWeek'){
     const { start, end } = weekMonSunBounds(new Date());
     els.rangeSubtitle.textContent = `${shortMD(start)} – ${shortMD(end)}`;
@@ -755,7 +810,6 @@ function renderService(){
     return;
   }
 
-  // Always group so dates are always visible.
   const grouped = groupByDay(filtered);
 
   grouped.forEach(([day, items])=>{
@@ -813,12 +867,17 @@ function formatShotLine(s){
   return `grind ${s.grind||''} · ${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
 }
 
+/* ---------- Navigation ---------- */
 function openNew(){
   editingId = null;
   view = 'new';
   els.formTitle.textContent = 'New Shot';
   els.formKicker.textContent = 'Fast log';
   els.btnDelete.classList.add('hidden');
+
+  // default date = Today
+  selectedDate = todayKey();
+  renderDateChips();
 
   const last = shots.length ? shots[shots.length-1] : null;
 
@@ -855,6 +914,10 @@ function openEdit(id){
   els.formKicker.textContent = fmtStamp(s.createdAt) || '';
   els.btnDelete.classList.remove('hidden');
 
+  // set date chips to the shot’s date
+  selectedDate = (s.createdAt ? s.createdAt.slice(0,10) : (s.date || todayKey()));
+  renderDateChips();
+
   els.bean.value = s.bean || '';
   addBeanToLibrary(els.bean.value);
 
@@ -882,6 +945,7 @@ function backToService(){
   render();
 }
 
+/* ---------- Save/delete ---------- */
 function saveShot(){
   const bean = (els.bean.value || '').trim();
   if(!bean){
@@ -899,10 +963,15 @@ function saveShot(){
   const custom = (tag === 'Custom') ? (els.resultCustom.value || '').trim() : '';
   const notes = (els.notes.value || '').trim();
 
+  // For new shots: anchor createdAt to the selected day (so Yesterday stays yesterday)
+  const createdAtForNew = selectedDate + 'T12:00:00.000Z';
+
   const shot = {
     id: editingId || ('s_' + Math.random().toString(36).slice(2,10)),
-    createdAt: editingId ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-    date: todayKey(),
+    createdAt: editingId
+      ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString())
+      : createdAtForNew,
+    date: selectedDate,
     bean,
     beanType,
     customBlend,
@@ -942,6 +1011,66 @@ function quickDelete(id, fromEdit=false){
   persist();
   if(fromEdit) backToService();
   else renderService();
+}
+
+/* ---------- Backup (Export/Import) ---------- */
+function exportData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    shots,
+    beanLibrary
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `espresso-tracker-backup-${todayKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+  alert('Backup exported. Save it in Files / iCloud.');
+}
+
+function importData(evt){
+  const file = evt.target.files && evt.target.files[0];
+  evt.target.value = '';
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+
+      if(!data || !Array.isArray(data.shots)){
+        alert('Invalid backup file.');
+        return;
+      }
+
+      const merge = confirm('Import backup:\n\nOK = Merge with existing\nCancel = Replace existing');
+
+      if(merge){
+        const existingIds = new Set(shots.map(s=>s.id));
+        const incoming = data.shots.filter(s=>s && s.id && !existingIds.has(s.id));
+        shots = shots.concat(incoming);
+
+        const beansIncoming = Array.isArray(data.beanLibrary) ? data.beanLibrary : [];
+        beanLibrary = Array.from(new Set(beanLibrary.concat(beansIncoming))).sort((a,b)=>a.localeCompare(b));
+      }else{
+        shots = data.shots;
+        beanLibrary = Array.isArray(data.beanLibrary) ? data.beanLibrary : [];
+      }
+
+      persist();
+      renderService();
+      alert('Import complete.');
+    }catch(e){
+      alert('Import failed. File may be corrupted.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ---------- Result color helper ---------- */
