@@ -176,14 +176,13 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
 
   <button class="btn btnPrimary" style="width:100%;margin:10px 0 12px" id="btnNewTop">＋ New Shot</button>
 
-  <!-- Backup buttons -->
+  <!-- Backup -->
   <div class="row" style="gap:10px;margin-bottom:12px">
     <button class="btn btnSmall" id="btnExport" type="button">Export</button>
     <button class="btn btnSmall" id="btnImport" type="button">Import</button>
     <input id="importFile" type="file" accept="application/json" class="hidden">
   </div>
 
-  <!-- Summary + Range Tabs + Sort -->
   <div class="summaryBar">
     <div class="summaryTabs chips" id="rangeTabs"></div>
 
@@ -213,7 +212,6 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
     <button class="btn btnGhost" id="btnCancel">Cancel</button>
   </div>
 
-  <!-- DATE PICKER -->
   <label>Date</label>
   <div class="chips" id="dateChips"></div>
   <div class="help">Choose “Yesterday” to re-log past shots.</div>
@@ -279,7 +277,7 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
 </div>
 
 <script>
-/** Storage keys */
+/* ---------------- Storage ---------------- */
 const STORAGE_SHOTS = 'shots';
 const STORAGE_BEANS = 'beanLibrary';
 
@@ -300,9 +298,7 @@ const FLAVOR_KEYS = [
 ];
 const FLAVOR_LEVELS = ['Low','Med','High'];
 
-const RESULT_TAGS = [
-  'Perfect','Good','Too Fast','Too Runny','Too Tight','Bitter','Sour','Custom'
-];
+const RESULT_TAGS = ['Perfect','Good','Too Fast','Too Runny','Too Tight','Bitter','Sour','Custom'];
 
 const RANGE_TABS = [
   { key:'today', label:'Today' },
@@ -313,8 +309,8 @@ const RANGE_TABS = [
 let range = 'today';
 let sortMode = 'newest';
 
-/** Date logging */
-let selectedDate = todayKey(); // default today
+/* Date logging */
+let selectedDate = todayKey(); // local date
 
 const els = {
   service: document.getElementById('service'),
@@ -378,8 +374,9 @@ let currentResultCustom = '';
 
 init();
 
+/* ---------------- Init ---------------- */
 function init(){
-  els.today.textContent = `Today · ${fmtDate(new Date())}`;
+  els.today.textContent = 'Today · ' + fmtDate(new Date());
 
   renderRangeTabs();
   renderDateChips();
@@ -404,43 +401,53 @@ function init(){
     renderService();
   });
 
-  // Backup handlers
+  // Backup
   els.btnExport.addEventListener('click', exportData);
   els.btnImport.addEventListener('click', ()=> els.importFile.click());
   els.importFile.addEventListener('change', importData);
 
   applyMethodLabels();
   render();
+
+  // Safe SW register (won't break UI if SW file missing)
+  registerSW();
 }
 
-/* ---------- Date helpers ---------- */
+/* ---------------- Date (LOCAL TIME) ---------------- */
+function todayKey(d){
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+
+function fmtDate(d){
+  return todayKey(d);
+}
+
 function yesterdayKey(){
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return todayKey(d);
 }
 
-function renderDateChips(){
-  const options = [
-    { key: todayKey(), label: 'Today' },
-    { key: yesterdayKey(), label: 'Yesterday' }
-  ];
-
-  els.dateChips.innerHTML = '';
-  options.forEach(opt=>{
-    const c = document.createElement('div');
-    c.className = 'chip' + (opt.key === selectedDate ? ' active' : '');
-    c.textContent = opt.label;
-    c.addEventListener('click', ()=>{
-      selectedDate = opt.key;
-      renderDateChips();
-    });
-    els.dateChips.appendChild(c);
-  });
+function fmtTime(d){
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return hh + ':' + mm;
 }
 
-/* ---------- Range helpers ---------- */
-function weekMonSunBounds(now=new Date()){
+function fmtStamp(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
+  return fmtDate(d) + ' · ' + fmtTime(d);
+}
+
+/* ---------------- Range helpers ---------------- */
+function weekMonSunBounds(now){
+  now = now || new Date();
   const day = now.getDay(); // 0=Sun, 1=Mon
   const diffToMon = (day === 0 ? -6 : 1 - day);
 
@@ -460,21 +467,24 @@ function shortMD(d){
 }
 
 function prettyDayLabel(dateStr){
-  const today = todayKey();
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  const yesterday = todayKey(y);
+  const t = todayKey(new Date());
+  const y = yesterdayKey();
 
-  if(dateStr === today) return 'Today';
-  if(dateStr === yesterday) return 'Yesterday';
+  if(dateStr === t) return 'Today';
+  if(dateStr === y) return 'Yesterday';
 
   const d = new Date(dateStr + 'T00:00:00');
   if(Number.isNaN(d.getTime())) return dateStr;
-
   return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
 }
 
-/* ---------- Storage ---------- */
+function getShotDateISO(s){
+  if(s.createdAt) return s.createdAt;
+  if(s.date) return s.date + 'T12:00:00.000Z';
+  return null;
+}
+
+/* ---------------- Utilities ---------------- */
 function safeParse(txt, fallback){
   try{ return txt ? JSON.parse(txt) : fallback; } catch(e){ return fallback; }
 }
@@ -484,7 +494,16 @@ function persist(){
   localStorage.setItem(STORAGE_BEANS, JSON.stringify(beanLibrary));
 }
 
-/* ---------- Beans ---------- */
+function escapeHtml(s){
+  return (s??'').toString()
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+/* ---------------- Beans ---------------- */
 function normalizeBeanLibrary(){
   const set = new Set();
   beanLibrary.forEach(b=>{
@@ -496,7 +515,7 @@ function normalizeBeanLibrary(){
 }
 
 function renderBeanDatalist(){
-  els.beanList.innerHTML = beanLibrary.map(b=>`<option value="${escapeHtml(b)}"></option>`).join('');
+  els.beanList.innerHTML = beanLibrary.map(b=>'<option value="' + escapeHtml(b) + '"></option>').join('');
 }
 
 function addBeanToLibrary(name){
@@ -517,7 +536,27 @@ function addBeanFromPrompt(){
   els.bean.focus();
 }
 
-/* ---------- Chips ---------- */
+/* ---------------- Date chips ---------------- */
+function renderDateChips(){
+  const options = [
+    { key: todayKey(new Date()), label: 'Today' },
+    { key: yesterdayKey(), label: 'Yesterday' }
+  ];
+
+  els.dateChips.innerHTML = '';
+  options.forEach(opt=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (opt.key === selectedDate ? ' active' : '');
+    c.textContent = opt.label;
+    c.addEventListener('click', ()=>{
+      selectedDate = opt.key;
+      renderDateChips();
+    });
+    els.dateChips.appendChild(c);
+  });
+}
+
+/* ---------------- Range tabs ---------------- */
 function renderRangeTabs(){
   els.rangeTabs.innerHTML = '';
   RANGE_TABS.forEach(t=>{
@@ -533,11 +572,12 @@ function renderRangeTabs(){
   });
 }
 
+/* ---------------- Bean Type / Roast chips ---------------- */
 function renderBeanTypeChips(){
   els.beanTypeChips.innerHTML = '';
   BEAN_TYPES.forEach(t=>{
     const d = document.createElement('div');
-    d.className = 'chip' + (t==='Arabica' ? ' active' : '');
+    d.className = 'chip' + (t===currentBeanType ? ' active' : '');
     d.textContent = t;
     d.addEventListener('click', ()=>{
       currentBeanType = t;
@@ -554,7 +594,7 @@ function renderRoastChips(){
   els.roastChips.innerHTML = '';
   ROAST_PROFILES.forEach(r=>{
     const c = document.createElement('div');
-    c.className = 'chip' + (r === currentRoast ? ' active' : '');
+    c.className = 'chip' + (r===currentRoast ? ' active' : '');
     c.textContent = r;
     c.addEventListener('click', ()=>{
       currentRoast = r;
@@ -565,6 +605,14 @@ function renderRoastChips(){
   });
 }
 
+function applyBeanTypeToUI(beanType){
+  currentBeanType = beanType || 'Arabica';
+  [...els.beanTypeChips.children].forEach(ch=>{
+    ch.classList.toggle('active', ch.textContent === currentBeanType);
+  });
+  els.customBlend.classList.toggle('hidden', currentBeanType!=='Custom Blend');
+}
+
 function applyRoastToUI(roast){
   currentRoast = roast || 'Medium';
   [...els.roastChips.children].forEach(ch=>{
@@ -572,6 +620,7 @@ function applyRoastToUI(roast){
   });
 }
 
+/* ---------------- Flavor chips ---------------- */
 function renderFlavorChips(){
   els.flavorBlock.innerHTML = '';
   FLAVOR_KEYS.forEach(row=>{
@@ -609,6 +658,25 @@ function renderFlavorChips(){
   });
 }
 
+function applyFlavorToUI(flavorProfile){
+  currentFlavor = {
+    acidity: flavorProfile?.acidity ?? null,
+    sweetness: flavorProfile?.sweetness ?? null,
+    body: flavorProfile?.body ?? null,
+    bitterness: flavorProfile?.bitterness ?? null
+  };
+
+  const rows = els.flavorBlock.querySelectorAll('.flavorRow');
+  rows.forEach((rowEl, idx)=>{
+    const key = FLAVOR_KEYS[idx].key;
+    const chips = rowEl.querySelectorAll('.chip');
+    chips.forEach(ch=>{
+      ch.classList.toggle('active', ch.textContent === currentFlavor[key]);
+    });
+  });
+}
+
+/* ---------------- Result chips ---------------- */
 function renderResultChips(){
   els.resultChips.innerHTML = '';
   RESULT_TAGS.forEach(tag=>{
@@ -632,32 +700,6 @@ function renderResultChips(){
   });
 }
 
-function applyFlavorToUI(flavorProfile){
-  currentFlavor = {
-    acidity: flavorProfile?.acidity ?? null,
-    sweetness: flavorProfile?.sweetness ?? null,
-    body: flavorProfile?.body ?? null,
-    bitterness: flavorProfile?.bitterness ?? null
-  };
-
-  const rows = els.flavorBlock.querySelectorAll('.flavorRow');
-  rows.forEach((rowEl, idx)=>{
-    const key = FLAVOR_KEYS[idx].key;
-    const chips = rowEl.querySelectorAll('.chip');
-    chips.forEach(ch=>{
-      ch.classList.toggle('active', ch.textContent === currentFlavor[key]);
-    });
-  });
-}
-
-function applyBeanTypeToUI(beanType){
-  currentBeanType = beanType || 'Arabica';
-  [...els.beanTypeChips.children].forEach(ch=>{
-    ch.classList.toggle('active', ch.textContent === currentBeanType);
-  });
-  els.customBlend.classList.toggle('hidden', currentBeanType!=='Custom Blend');
-}
-
 function applyResultToUI(result){
   currentResultTag = result?.tag ?? null;
   currentResultCustom = result?.custom ?? '';
@@ -670,7 +712,7 @@ function applyResultToUI(result){
   els.resultCustom.value = (currentResultTag === 'Custom') ? currentResultCustom : '';
 }
 
-/* ---------- Method labels ---------- */
+/* ---------------- Method labels ---------------- */
 function applyMethodLabels(){
   const m = els.brewMethod.value;
 
@@ -705,38 +747,7 @@ function applyMethodLabels(){
   }
 }
 
-/* ---------- Date utils ---------- */
-function todayKey(d=new Date()){
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-
-}
-function fmtDate(d){
-  return todayKey(d);
-}
-
-}
-function fmtTime(d){
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  return `${hh}:${mm}`;
-}
-function fmtStamp(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  if(Number.isNaN(d.getTime())) return '';
-  return `${fmtDate(d)} · ${fmtTime(d)}`;
-}
-function getShotDateISO(s){
-  if(s.createdAt) return s.createdAt;
-  if(s.date) return s.date + 'T12:00:00.000Z';
-  return null;
-}
-
-/* ---------- Render ---------- */
+/* ---------------- Render ---------------- */
 function render(){
   els.service.classList.toggle('hidden', view!=='service');
   els.new.classList.toggle('hidden', view!=='new');
@@ -758,8 +769,8 @@ function withinRange(shot){
   }
 
   if(range === 'thisWeek'){
-    const { start, end } = weekMonSunBounds(now);
-    return d >= start && d <= end;
+    const bounds = weekMonSunBounds(now);
+    return d >= bounds.start && d <= bounds.end;
   }
 
   if(range === 'month'){
@@ -781,10 +792,9 @@ function computeStats(arr){
 
 function renderStats(arr){
   const st = computeStats(arr);
-  els.stats.innerHTML = `
-    <div class="pill">${st.total} shots</div>
-    <div class="pill">${st.uniqueBeans} beans</div>
-  `;
+  els.stats.innerHTML =
+    '<div class="pill">' + st.total + ' shots</div>' +
+    '<div class="pill">' + st.uniqueBeans + ' beans</div>';
 }
 
 function groupByDay(arr){
@@ -821,16 +831,25 @@ function sortShots(arr){
   return copy;
 }
 
+function formatShotLine(s){
+  const m = s.brewMethod || 'Espresso';
+  if(m === 'Pour Over') return (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
+  if(m === 'Cold Brew') return (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
+  return 'grind ' + (s.grind||'') + ' · ' + (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
+}
+
 function renderService(){
-  const list = els.shotList;
-  list.innerHTML = '';
+  els.today.textContent = 'Today · ' + fmtDate(new Date());
 
   if(range === 'thisWeek'){
-    const { start, end } = weekMonSunBounds(new Date());
-    els.rangeSubtitle.textContent = `${shortMD(start)} – ${shortMD(end)}`;
+    const b = weekMonSunBounds(new Date());
+    els.rangeSubtitle.textContent = shortMD(b.start) + ' – ' + shortMD(b.end);
   }else{
     els.rangeSubtitle.textContent = '';
   }
+
+  const list = els.shotList;
+  list.innerHTML = '';
 
   let filtered = shots.filter(withinRange);
   filtered = sortShots(filtered);
@@ -840,7 +859,7 @@ function renderService(){
   if(filtered.length === 0){
     const empty = document.createElement('div');
     empty.className = 'card';
-    empty.innerHTML = `<div class="metaMuted">No shots in this range.</div>`;
+    empty.innerHTML = '<div class="metaMuted">No shots in this range.</div>';
     list.appendChild(empty);
     return;
   }
@@ -850,7 +869,7 @@ function renderService(){
   grouped.forEach(([day, items])=>{
     const h = document.createElement('div');
     h.className = 'dayHeader';
-    h.textContent = `${prettyDayLabel(day)} · ${items.length} shot${items.length>1?'s':''}`;
+    h.textContent = prettyDayLabel(day) + ' · ' + items.length + ' shot' + (items.length>1?'s':'');
     list.appendChild(h);
 
     items.forEach(s=>{
@@ -870,23 +889,21 @@ function renderService(){
       const resDot = resultColor(resText);
 
       const notePreview = (s.notes || '').trim().slice(0, 90);
-      const noteLine = notePreview ? `<div class="metaMuted" style="margin-top:10px">“${escapeHtml(notePreview)}${(s.notes||'').trim().length>90?'…':''}”</div>` : '';
+      const noteLine = notePreview
+        ? '<div class="metaMuted" style="margin-top:10px">“' + escapeHtml(notePreview) + ((s.notes||'').trim().length>90?'…':'') + '”</div>'
+        : '';
 
-      card.innerHTML = `
-        <div class="beanName">${bean}</div>
-        <div class="metaMuted">${type} · ${roast} · ${method}</div>
-        <div class="metaLine">${escapeHtml(line)}</div>
-        <div class="metaMuted" style="margin-top:10px">${escapeHtml(stamp)}</div>
-
-        ${resText ? `<div class="badge"><span class="dot" style="background:${resDot}"></span>${escapeHtml(resText)}</div>` : ''}
-
-        ${noteLine}
-
-        <div class="actions">
-          <button class="btn btnSmall" data-action="edit" data-id="${escapeHtml(s.id)}">Edit</button>
-          <button class="btn btnDanger btnSmall" data-action="delete" data-id="${escapeHtml(s.id)}">Delete</button>
-        </div>
-      `;
+      card.innerHTML =
+        '<div class="beanName">' + bean + '</div>' +
+        '<div class="metaMuted">' + type + ' · ' + roast + ' · ' + method + '</div>' +
+        '<div class="metaLine">' + escapeHtml(line) + '</div>' +
+        '<div class="metaMuted" style="margin-top:10px">' + escapeHtml(stamp) + '</div>' +
+        (resText ? ('<div class="badge"><span class="dot" style="background:' + resDot + '"></span>' + escapeHtml(resText) + '</div>') : '') +
+        noteLine +
+        '<div class="actions">' +
+          '<button class="btn btnSmall" data-action="edit" data-id="' + escapeHtml(s.id) + '">Edit</button>' +
+          '<button class="btn btnDanger btnSmall" data-action="delete" data-id="' + escapeHtml(s.id) + '">Delete</button>' +
+        '</div>';
 
       card.querySelector('[data-action="edit"]').addEventListener('click', ()=> openEdit(s.id));
       card.querySelector('[data-action="delete"]').addEventListener('click', ()=> quickDelete(s.id));
@@ -896,14 +913,7 @@ function renderService(){
   });
 }
 
-function formatShotLine(s){
-  const m = s.brewMethod || 'Espresso';
-  if(m === 'Pour Over') return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
-  if(m === 'Cold Brew') return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
-  return `grind ${s.grind||''} · ${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
-}
-
-/* ---------- Navigation ---------- */
+/* ---------------- Navigation ---------------- */
 function openNew(){
   editingId = null;
   view = 'new';
@@ -911,8 +921,7 @@ function openNew(){
   els.formKicker.textContent = 'Fast log';
   els.btnDelete.classList.add('hidden');
 
-  // default date = Today
-  selectedDate = todayKey();
+  selectedDate = todayKey(new Date());
   renderDateChips();
 
   const last = shots.length ? shots[shots.length-1] : null;
@@ -935,7 +944,6 @@ function openNew(){
 
   applyFlavorToUI(last?.flavorProfile || {});
   applyResultToUI(last?.result || {});
-
   els.notes.value = '';
 
   render();
@@ -952,8 +960,7 @@ function openEdit(id){
   els.formKicker.textContent = fmtStamp(s.createdAt) || '';
   els.btnDelete.classList.remove('hidden');
 
-  // set date chips to the shot’s date
-  selectedDate = (s.createdAt ? s.createdAt.slice(0,10) : (s.date || todayKey()));
+  selectedDate = (s.createdAt ? s.createdAt.slice(0,10) : (s.date || todayKey(new Date())));
   renderDateChips();
 
   els.bean.value = s.bean || '';
@@ -974,7 +981,6 @@ function openEdit(id){
 
   applyFlavorToUI(s.flavorProfile || {});
   applyResultToUI(s.result || {});
-
   els.notes.value = s.notes || '';
 
   render();
@@ -985,7 +991,7 @@ function backToService(){
   render();
 }
 
-/* ---------- Save/delete ---------- */
+/* ---------------- Save/delete ---------------- */
 function saveShot(){
   const bean = (els.bean.value || '').trim();
   if(!bean){
@@ -998,14 +1004,13 @@ function saveShot(){
   const beanType = currentBeanType || 'Arabica';
   const customBlend = (beanType === 'Custom Blend') ? (els.customBlend.value || '').trim() : '';
   const brewMethod = els.brewMethod.value || 'Espresso';
-
   const roastProfile = currentRoast || 'Medium';
 
   const tag = currentResultTag || null;
   const custom = (tag === 'Custom') ? (els.resultCustom.value || '').trim() : '';
   const notes = (els.notes.value || '').trim();
 
-  // For new shots: anchor createdAt to the selected day (so Yesterday stays yesterday)
+  // Keep Yesterday shots as yesterday (stable)
   const createdAtForNew = selectedDate + 'T12:00:00.000Z';
 
   const shot = {
@@ -1014,11 +1019,11 @@ function saveShot(){
       ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString())
       : createdAtForNew,
     date: selectedDate,
-    bean,
-    beanType,
-    customBlend,
-    roastProfile,
-    brewMethod,
+    bean: bean,
+    beanType: beanType,
+    customBlend: customBlend,
+    roastProfile: roastProfile,
+    brewMethod: brewMethod,
     grind: (brewMethod==='Espresso') ? (els.grind.value || '').trim() : '',
     dose: (els.dose.value || '').trim(),
     yield: (els.yield.value || '').trim(),
@@ -1029,8 +1034,8 @@ function saveShot(){
       body: currentFlavor.body,
       bitterness: currentFlavor.bitterness
     },
-    result: { tag, custom },
-    notes
+    result: { tag: tag, custom: custom },
+    notes: notes
   };
 
   try{
@@ -1048,7 +1053,8 @@ function deleteCurrentShot(){
   quickDelete(editingId, true);
 }
 
-function quickDelete(id, fromEdit=false){
+function quickDelete(id, fromEdit){
+  fromEdit = !!fromEdit;
   if(!confirm('Delete this shot?')) return;
   shots = shots.filter(x=>x.id!==id);
   persist();
@@ -1056,19 +1062,28 @@ function quickDelete(id, fromEdit=false){
   else renderService();
 }
 
-/* ---------- Backup (Export/Import) ---------- */
+/* ---------------- Result color ---------------- */
+function resultColor(tag){
+  const t = (tag||'').toLowerCase();
+  if(t.includes('perfect')) return '#2e7d32';
+  if(t.includes('good')) return '#4caf50';
+  if(t.includes('too fast')) return '#fb8c00';
+  if(t.includes('runny')) return '#fb8c00';
+  if(t.includes('too tight')) return '#7b1fa2';
+  if(t.includes('bitter')) return '#6d4c41';
+  if(t.includes('sour')) return '#1565c0';
+  return '#999';
+}
+
+/* ---------------- Backup ---------------- */
 function exportData(){
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    shots,
-    beanLibrary
-  };
+  const payload = { exportedAt: new Date().toISOString(), shots: shots, beanLibrary: beanLibrary };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `espresso-tracker-backup-${todayKey()}.json`;
+  a.download = 'espresso-tracker-backup-' + todayKey(new Date()) + '.json';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -1086,7 +1101,6 @@ function importData(evt){
   reader.onload = () => {
     try{
       const data = JSON.parse(reader.result);
-
       if(!data || !Array.isArray(data.shots)){
         alert('Invalid backup file.');
         return;
@@ -1116,27 +1130,15 @@ function importData(evt){
   reader.readAsText(file);
 }
 
-/* ---------- Result color helper ---------- */
-function resultColor(tag){
-  const t = (tag||'').toLowerCase();
-  if(t.includes('perfect')) return '#2e7d32';
-  if(t.includes('good')) return '#4caf50';
-  if(t.includes('too fast')) return '#fb8c00';
-  if(t.includes('runny')) return '#fb8c00';
-  if(t.includes('too tight')) return '#7b1fa2';
-  if(t.includes('bitter')) return '#6d4c41';
-  if(t.includes('sour')) return '#1565c0';
-  return '#999';
-}
-
-/* ---------- Utility ---------- */
-function escapeHtml(s){
-  return (s??'').toString()
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
+/* ---------------- Service worker (safe) ---------------- */
+function registerSW(){
+  try{
+    if(!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('./service-worker.js').then(reg=>{
+      // Try to update quietly
+      if(reg && reg.update) reg.update();
+    }).catch(()=>{ /* ignore */ });
+  }catch(e){ /* ignore */ }
 }
 </script>
 </body>
