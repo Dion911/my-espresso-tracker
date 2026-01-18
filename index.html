@@ -229,6 +229,9 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   <div class="chips" id="beanTypeChips"></div>
   <input id="customBlend" class="hidden" placeholder="Describe blend (e.g., 70/30 Arabica-Robusta)">
 
+  <label>Roast Profile</label>
+  <div class="chips" id="roastChips"></div>
+
   <label>Brew Method</label>
   <select id="brewMethod">
     <option value="Espresso">Espresso</option>
@@ -287,6 +290,8 @@ let view = 'service';
 let editingId = null;
 
 const BEAN_TYPES = ['Arabica','Robusta','Liberica','Custom Blend'];
+const ROAST_PROFILES = ['Light','Light–Med','Medium','Med–Dark','Dark'];
+
 const FLAVOR_KEYS = [
   { key:'acidity', label:'Acidity' },
   { key:'sweetness', label:'Sweetness' },
@@ -308,7 +313,7 @@ const RANGE_TABS = [
 let range = 'today';
 let sortMode = 'newest';
 
-/** ✅ NEW: selectedDate lets you log Yesterday */
+/** Date logging */
 let selectedDate = todayKey(); // default today
 
 const els = {
@@ -342,6 +347,8 @@ const els = {
   beanTypeChips: document.getElementById('beanTypeChips'),
   customBlend: document.getElementById('customBlend'),
 
+  roastChips: document.getElementById('roastChips'),
+
   brewMethod: document.getElementById('brewMethod'),
 
   lblGrind: document.getElementById('lblGrind'),
@@ -363,6 +370,8 @@ const els = {
 };
 
 let currentBeanType = 'Arabica';
+let currentRoast = 'Medium';
+
 let currentFlavor = { acidity:null, sweetness:null, body:null, bitterness:null };
 let currentResultTag = null;
 let currentResultCustom = '';
@@ -375,6 +384,7 @@ function init(){
   renderRangeTabs();
   renderDateChips();
   renderBeanTypeChips();
+  renderRoastChips();
   renderFlavorChips();
   renderResultChips();
 
@@ -540,6 +550,28 @@ function renderBeanTypeChips(){
   });
 }
 
+function renderRoastChips(){
+  els.roastChips.innerHTML = '';
+  ROAST_PROFILES.forEach(r=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (r === currentRoast ? ' active' : '');
+    c.textContent = r;
+    c.addEventListener('click', ()=>{
+      currentRoast = r;
+      [...els.roastChips.children].forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+    });
+    els.roastChips.appendChild(c);
+  });
+}
+
+function applyRoastToUI(roast){
+  currentRoast = roast || 'Medium';
+  [...els.roastChips.children].forEach(ch=>{
+    ch.classList.toggle('active', ch.textContent === currentRoast);
+  });
+}
+
 function renderFlavorChips(){
   els.flavorBlock.innerHTML = '';
   FLAVOR_KEYS.forEach(row=>{
@@ -677,24 +709,20 @@ function applyMethodLabels(){
 function todayKey(d=new Date()){
   return d.toISOString().slice(0,10);
 }
-
 function fmtDate(d){
   return d.toISOString().slice(0,10);
 }
-
 function fmtTime(d){
   const hh = String(d.getHours()).padStart(2,'0');
   const mm = String(d.getMinutes()).padStart(2,'0');
   return `${hh}:${mm}`;
 }
-
 function fmtStamp(iso){
   if(!iso) return '';
   const d = new Date(iso);
   if(Number.isNaN(d.getTime())) return '';
   return `${fmtDate(d)} · ${fmtTime(d)}`;
 }
-
 function getShotDateISO(s){
   if(s.createdAt) return s.createdAt;
   if(s.date) return s.date + 'T12:00:00.000Z';
@@ -824,6 +852,7 @@ function renderService(){
 
       const bean = escapeHtml(s.bean || 'Untitled bean');
       const type = escapeHtml(s.beanType || '—');
+      const roast = escapeHtml(s.roastProfile || '—');
       const method = escapeHtml(s.brewMethod || 'Espresso');
 
       const line = formatShotLine(s);
@@ -838,7 +867,7 @@ function renderService(){
 
       card.innerHTML = `
         <div class="beanName">${bean}</div>
-        <div class="metaMuted">${type} · ${method}</div>
+        <div class="metaMuted">${type} · ${roast} · ${method}</div>
         <div class="metaLine">${escapeHtml(line)}</div>
         <div class="metaMuted" style="margin-top:10px">${escapeHtml(stamp)}</div>
 
@@ -887,6 +916,8 @@ function openNew(){
   applyBeanTypeToUI(last?.beanType || 'Arabica');
   els.customBlend.value = last?.customBlend || '';
 
+  applyRoastToUI(last?.roastProfile || 'Medium');
+
   els.brewMethod.value = last?.brewMethod || 'Espresso';
   applyMethodLabels();
 
@@ -924,6 +955,8 @@ function openEdit(id){
   applyBeanTypeToUI(s.beanType || 'Arabica');
   els.customBlend.value = s.customBlend || '';
 
+  applyRoastToUI(s.roastProfile || 'Medium');
+
   els.brewMethod.value = s.brewMethod || 'Espresso';
   applyMethodLabels();
 
@@ -959,6 +992,8 @@ function saveShot(){
   const customBlend = (beanType === 'Custom Blend') ? (els.customBlend.value || '').trim() : '';
   const brewMethod = els.brewMethod.value || 'Espresso';
 
+  const roastProfile = currentRoast || 'Medium';
+
   const tag = currentResultTag || null;
   const custom = (tag === 'Custom') ? (els.resultCustom.value || '').trim() : '';
   const notes = (els.notes.value || '').trim();
@@ -975,6 +1010,7 @@ function saveShot(){
     bean,
     beanType,
     customBlend,
+    roastProfile,
     brewMethod,
     grind: (brewMethod==='Espresso') ? (els.grind.value || '').trim() : '',
     dose: (els.dose.value || '').trim(),
