@@ -60,6 +60,7 @@ input,select,textarea{
   font-size:18px;
   outline:none;
 }
+textarea{min-height:92px;resize:vertical}
 label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hidden{display:none}
@@ -84,12 +85,13 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   display:flex;
   gap:10px;
   flex-wrap:wrap;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   margin:10px 0 14px;
 }
 .summaryTabs{display:flex;gap:8px;flex-wrap:wrap}
-.statPills{display:flex;gap:8px;flex-wrap:wrap}
+.statPills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
 .pill{
   border:1px solid var(--line);
   background:#fff;
@@ -99,6 +101,29 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   color:var(--muted);
   font-weight:700;
 }
+
+.sortRow{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.sortLabel{
+  font-size:14px;
+  color:var(--muted);
+  font-weight:800;
+  letter-spacing:0.01em;
+}
+.sortSelect{
+  width:auto;
+  padding:9px 12px;
+  border-radius:999px;
+  font-size:14px;
+  font-weight:800;
+  color:#1a1b1f;
+}
+
 .dayHeader{
   font-size:14px;
   color:var(--muted);
@@ -106,6 +131,21 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   letter-spacing:0.01em;
   padding:6px 2px 0;
 }
+
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:14px;
+  color:var(--muted);
+  font-weight:800;
+  margin-top:10px;
+}
+.dot{width:8px;height:8px;border-radius:999px;background:#bbb}
+
+.help{font-size:13px;color:var(--muted);line-height:1.35}
+
 @media (max-width:420px){
   .wrap{padding:12px}
   .title{font-size:26px}
@@ -130,10 +170,21 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
 
   <button class="btn btnPrimary" style="width:100%;margin:10px 0 12px" id="btnNewTop">＋ New Shot</button>
 
-  <!-- Summary + Range Tabs -->
+  <!-- Summary + Range Tabs + Sort -->
   <div class="summaryBar">
     <div class="summaryTabs chips" id="rangeTabs"></div>
-    <div class="statPills" id="stats"></div>
+
+    <div class="statPills">
+      <div id="stats" class="statPills"></div>
+      <div class="sortRow">
+        <div class="sortLabel">Sorted by</div>
+        <select id="sortSelect" class="sortSelect">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="bean">Bean</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div class="list" id="shotList"></div>
@@ -191,6 +242,13 @@ label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bot
   <label>Flavor Profile</label>
   <div class="flavorBlock" id="flavorBlock"></div>
 
+  <label>Result</label>
+  <div class="chips" id="resultChips"></div>
+  <input id="resultCustom" class="hidden" placeholder="Custom result (e.g., Channeling, Under-extracted)">
+
+  <label>Notes</label>
+  <textarea id="notes" placeholder="Quick notes… (optional)"></textarea>
+
   <div class="footerBtns">
     <button class="btn btnPrimary" id="btnSave">Save</button>
     <button class="btn btnDanger hidden" id="btnDelete">Delete</button>
@@ -219,12 +277,17 @@ const FLAVOR_KEYS = [
 ];
 const FLAVOR_LEVELS = ['Low','Med','High'];
 
+const RESULT_TAGS = [
+  'Perfect','Good','Too Fast','Too Runny','Too Tight','Bitter','Sour','Custom'
+];
+
 const RANGE_TABS = [
   { key:'today', label:'Today' },
   { key:'week', label:'Week' },
   { key:'month', label:'Month' }
 ];
 let range = 'today'; // default
+let sortMode = 'newest'; // default
 
 const els = {
   service: document.getElementById('service'),
@@ -233,6 +296,7 @@ const els = {
   shotList: document.getElementById('shotList'),
   stats: document.getElementById('stats'),
   rangeTabs: document.getElementById('rangeTabs'),
+  sortSelect: document.getElementById('sortSelect'),
 
   btnNewTop: document.getElementById('btnNewTop'),
   btnCancel: document.getElementById('btnCancel'),
@@ -261,20 +325,28 @@ const els = {
   yield: document.getElementById('yield'),
   time: document.getElementById('time'),
 
-  flavorBlock: document.getElementById('flavorBlock')
+  flavorBlock: document.getElementById('flavorBlock'),
+
+  resultChips: document.getElementById('resultChips'),
+  resultCustom: document.getElementById('resultCustom'),
+
+  notes: document.getElementById('notes')
 };
 
 let currentBeanType = 'Arabica';
 let currentFlavor = { acidity:null, sweetness:null, body:null, bitterness:null };
+let currentResultTag = null;     // e.g., "Perfect"
+let currentResultCustom = '';    // for "Custom"
 
 init();
 
 function init(){
-  els.today.textContent = `Today · ${fmtDate(new Date())}`;
+  els.today.textContent = `Today · ${prettyDate(new Date())}`;
 
   renderRangeTabs();
   renderBeanTypeChips();
   renderFlavorChips();
+  renderResultChips();
 
   normalizeBeanLibrary();
   renderBeanDatalist();
@@ -286,6 +358,11 @@ function init(){
   els.btnAddBean.addEventListener('click', addBeanFromPrompt);
 
   els.brewMethod.addEventListener('change', applyMethodLabels);
+
+  els.sortSelect.addEventListener('change', ()=>{
+    sortMode = els.sortSelect.value || 'newest';
+    renderService();
+  });
 
   applyMethodLabels();
   render();
@@ -386,6 +463,29 @@ function renderFlavorChips(){
   });
 }
 
+function renderResultChips(){
+  els.resultChips.innerHTML = '';
+  RESULT_TAGS.forEach(tag=>{
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = tag;
+    c.addEventListener('click', ()=>{
+      const was = (currentResultTag === tag);
+      currentResultTag = was ? null : tag;
+
+      [...els.resultChips.children].forEach(x=>x.classList.remove('active'));
+      if(!was) c.classList.add('active');
+
+      els.resultCustom.classList.toggle('hidden', currentResultTag !== 'Custom');
+      if(currentResultTag !== 'Custom'){
+        els.resultCustom.value = '';
+        currentResultCustom = '';
+      }
+    });
+    els.resultChips.appendChild(c);
+  });
+}
+
 function applyFlavorToUI(flavorProfile){
   currentFlavor = {
     acidity: flavorProfile?.acidity ?? null,
@@ -412,10 +512,21 @@ function applyBeanTypeToUI(beanType){
   els.customBlend.classList.toggle('hidden', currentBeanType!=='Custom Blend');
 }
 
+function applyResultToUI(result){
+  currentResultTag = result?.tag ?? null;
+  currentResultCustom = result?.custom ?? '';
+
+  [...els.resultChips.children].forEach(ch=>{
+    ch.classList.toggle('active', ch.textContent === currentResultTag);
+  });
+
+  els.resultCustom.classList.toggle('hidden', currentResultTag !== 'Custom');
+  els.resultCustom.value = (currentResultTag === 'Custom') ? currentResultCustom : '';
+}
+
 function applyMethodLabels(){
   const m = els.brewMethod.value;
 
-  // show grind by default
   els.lblGrind.textContent = 'Grind';
   els.grind.placeholder = '30';
   els.grind.parentElement.classList.remove('hidden');
@@ -455,6 +566,11 @@ function fmtDate(d){
   return d.toISOString().slice(0,10);
 }
 
+function prettyDate(d){
+  // still stable + simple: 2026-01-18 (keeps your current format)
+  return fmtDate(d);
+}
+
 function fmtTime(d){
   const hh = String(d.getHours()).padStart(2,'0');
   const mm = String(d.getMinutes()).padStart(2,'0');
@@ -490,8 +606,15 @@ function renderRangeTabs(){
   });
 }
 
+function getShotDateISO(s){
+  // Reliable timestamp even if createdAt is missing.
+  if(s.createdAt) return s.createdAt;
+  if(s.date) return s.date + 'T00:00:00.000Z';
+  return null;
+}
+
 function withinRange(shot){
-  const iso = shot.createdAt || (shot.date ? shot.date + 'T00:00:00.000Z' : null);
+  const iso = getShotDateISO(shot);
   if(!iso) return false;
   const d = new Date(iso);
   if(Number.isNaN(d.getTime())) return false;
@@ -506,14 +629,13 @@ function withinRange(shot){
 
   if(range === 'week'){
     const start = new Date(now);
-    start.setDate(start.getDate() - 6); // last 7 days incl today
+    start.setDate(start.getDate() - 6);
     start.setHours(0,0,0,0);
     const end = new Date(now);
     end.setHours(23,59,59,999);
     return d >= start && d <= end;
   }
 
-  // month (current calendar month)
   if(range === 'month'){
     const y = now.getFullYear();
     const m = now.getMonth();
@@ -547,18 +669,40 @@ function groupByDay(arr){
     if(!map.has(date)) map.set(date, []);
     map.get(date).push(s);
   });
-  // sort days desc
   return Array.from(map.entries()).sort((a,b)=> b[0].localeCompare(a[0]));
+}
+
+function sortShots(arr){
+  const copy = [...arr];
+
+  if(sortMode === 'bean'){
+    copy.sort((a,b)=>{
+      const A = (a.bean||'').toString().trim().toLowerCase();
+      const B = (b.bean||'').toString().trim().toLowerCase();
+      if(A < B) return -1;
+      if(A > B) return 1;
+      // tie-break: newest first
+      return (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime());
+    });
+    return copy;
+  }
+
+  if(sortMode === 'oldest'){
+    copy.sort((a,b)=> (new Date(getShotDateISO(a)||0).getTime()) - (new Date(getShotDateISO(b)||0).getTime()));
+    return copy;
+  }
+
+  // newest
+  copy.sort((a,b)=> (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime()));
+  return copy;
 }
 
 function renderService(){
   const list = els.shotList;
   list.innerHTML = '';
 
-  const filtered = shots.filter(withinRange);
-
-  // newest first
-  filtered.sort((a,b)=> (new Date(b.createdAt||b.date).getTime()) - (new Date(a.createdAt||a.date).getTime()));
+  let filtered = shots.filter(withinRange);
+  filtered = sortShots(filtered);
 
   renderStats(filtered);
 
@@ -570,16 +714,14 @@ function renderService(){
     return;
   }
 
-  // If range is week/month, add day grouping headers
-  const grouped = (range === 'today') ? [[todayKey(), filtered]] : groupByDay(filtered);
+  // Always group by day so the date is visible in every range (including "Today").
+  const grouped = groupByDay(filtered);
 
   grouped.forEach(([day, items])=>{
-    if(range !== 'today'){
-      const h = document.createElement('div');
-      h.className = 'dayHeader';
-      h.textContent = `${day} · ${items.length} shot${items.length>1?'s':''}`;
-      list.appendChild(h);
-    }
+    const h = document.createElement('div');
+    h.className = 'dayHeader';
+    h.textContent = `${day} · ${items.length} shot${items.length>1?'s':''}`;
+    list.appendChild(h);
 
     items.forEach(s=>{
       const card = document.createElement('div');
@@ -590,13 +732,24 @@ function renderService(){
       const method = escapeHtml(s.brewMethod || 'Espresso');
 
       const line = formatShotLine(s);
-      const stamp = fmtStamp(s.createdAt) || escapeHtml(s.date || '');
+      const stamp = fmtStamp(s.createdAt) || escapeHtml(s.date || day);
+
+      const res = s.result?.tag ? s.result.tag : '';
+      const resText = (res === 'Custom') ? (s.result.custom || 'Custom') : res;
+      const resDot = resultColor(resText);
+
+      const notePreview = (s.notes || '').trim().slice(0, 90);
+      const noteLine = notePreview ? `<div class="metaMuted" style="margin-top:10px">“${escapeHtml(notePreview)}${(s.notes||'').trim().length>90?'…':''}”</div>` : '';
 
       card.innerHTML = `
         <div class="beanName">${bean}</div>
         <div class="metaMuted">${type} · ${method}</div>
         <div class="metaLine">${escapeHtml(line)}</div>
         <div class="metaMuted" style="margin-top:10px">${escapeHtml(stamp)}</div>
+
+        ${resText ? `<div class="badge"><span class="dot" style="background:${resDot}"></span>${escapeHtml(resText)}</div>` : ''}
+
+        ${noteLine}
 
         <div class="actions">
           <button class="btn btnSmall" data-action="edit" data-id="${escapeHtml(s.id)}">Edit</button>
@@ -614,24 +767,13 @@ function renderService(){
 
 function formatShotLine(s){
   const m = s.brewMethod || 'Espresso';
-
   if(m === 'Pour Over'){
-    const dose = s.dose || '';
-    const water = s.yield || '';
-    const time = s.time || '';
-    return `${dose} → ${water} · ${time}`;
+    return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
   }
   if(m === 'Cold Brew'){
-    const coffee = s.dose || '';
-    const water = s.yield || '';
-    const bt = s.time || '';
-    return `${coffee} → ${water} · ${bt}`;
+    return `${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
   }
-  const grind = s.grind || '';
-  const dose = s.dose || '';
-  const yieldv = s.yield || '';
-  const time = s.time || '';
-  return `grind ${grind} · ${dose} → ${yieldv} · ${time}`;
+  return `grind ${s.grind||''} · ${s.dose||''} → ${s.yield||''} · ${s.time||''}`;
 }
 
 function openNew(){
@@ -658,6 +800,9 @@ function openNew(){
   els.time.value = last?.time || '';
 
   applyFlavorToUI(last?.flavorProfile || {});
+  applyResultToUI(last?.result || {});
+
+  els.notes.value = '';
 
   render();
   els.bean.focus();
@@ -688,6 +833,9 @@ function openEdit(id){
   els.time.value = s.time || '';
 
   applyFlavorToUI(s.flavorProfile || {});
+  applyResultToUI(s.result || {});
+
+  els.notes.value = s.notes || '';
 
   render();
 }
@@ -710,10 +858,14 @@ function saveShot(){
   const customBlend = (beanType === 'Custom Blend') ? (els.customBlend.value || '').trim() : '';
   const brewMethod = els.brewMethod.value || 'Espresso';
 
+  const tag = currentResultTag || null;
+  const custom = (tag === 'Custom') ? (els.resultCustom.value || '').trim() : '';
+  const notes = (els.notes.value || '').trim();
+
   const shot = {
     id: editingId || ('s_' + Math.random().toString(36).slice(2,10)),
     createdAt: editingId ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-    date: todayKey(), // legacy fallback
+    date: todayKey(),
     bean,
     beanType,
     customBlend,
@@ -727,14 +879,19 @@ function saveShot(){
       sweetness: currentFlavor.sweetness,
       body: currentFlavor.body,
       bitterness: currentFlavor.bitterness
-    }
+    },
+    result: { tag, custom },
+    notes
   };
 
-  if(editingId) shots = shots.map(x=> x.id===editingId ? shot : x);
-  else shots.push(shot);
-
-  persist();
-  backToService();
+  try{
+    if(editingId) shots = shots.map(x=> x.id===editingId ? shot : x);
+    else shots.push(shot);
+    persist();
+    backToService();
+  }catch(e){
+    alert('Save failed — storage may be full. Try deleting old shots.');
+  }
 }
 
 function deleteCurrentShot(){
@@ -750,6 +907,20 @@ function quickDelete(id, fromEdit=false){
   else renderService();
 }
 
+/* ---------- Result color helper ---------- */
+function resultColor(tag){
+  const t = (tag||'').toLowerCase();
+  if(t.includes('perfect')) return '#2e7d32';
+  if(t.includes('good')) return '#4caf50';
+  if(t.includes('too fast')) return '#fb8c00';
+  if(t.includes('runny')) return '#fb8c00';
+  if(t.includes('too tight')) return '#7b1fa2';
+  if(t.includes('bitter')) return '#6d4c41';
+  if(t.includes('sour')) return '#1565c0';
+  return '#999';
+}
+
+/* ---------- Utility ---------- */
 function escapeHtml(s){
   return (s??'').toString()
     .replaceAll('&','&amp;')
