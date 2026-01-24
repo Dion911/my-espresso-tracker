@@ -11,153 +11,162 @@
 <meta name="theme-color" content="#111111">
 
 <style>
+<style>
 :root{
-  --bg:#fafafa; --panel:#fff; --text:#101113; --muted:#6b6e76;
-  --line:#e8e8ea; --hover:#f4f4f5; --danger:#c62f2f;
-  --radius:18px; --sans:-apple-system,BlinkMacSystemFont,Inter,system-ui,Arial;
+  /* Palette */
+  --bg:#F7F1E1;        /* Old lace */
+  --panel:#E3D8C1;     /* Bone */
+  --text:#66371B;      /* Kobicha */
+  --muted:rgba(102,55,27,.65);
+
+  --accent:#B4833D;    /* Dark goldenrod */
+  --danger:#c62f2f;
+
+  --line:rgba(102,55,27,.28);
+  --hover:rgba(180,131,61,.14);
+
+  /* Shape */
+  --radius:18px;
+  --radius-lg:26px;
+  --radius-sm:14px;
+
+  /* Font (same as your current UI) */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,Arial;
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text)}
-.wrap{max-width:820px;margin:0 auto;padding:14px}
 
-.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.title{font-weight:800;font-size:28px;letter-spacing:-0.02em}
-.subtitle{font-size:15px;color:var(--muted);margin-top:2px}
+*{ box-sizing:border-box }
 
-.btn{
-  border:1px solid var(--line);
-  background:#fff;
-  border-radius:16px;
-  padding:11px 13px;
-  font-weight:700;
-  cursor:pointer;
-  font-size:16px;
+html,body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
 }
-.btnPrimary{background:#101113;color:#fff;border-color:#101113}
-.btnDanger{color:var(--danger);border-color:#f2c6c6}
-.btnGhost{background:transparent}
-.btnSmall{padding:9px 11px;border-radius:14px;font-size:15px}
 
-.card{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-radius:22px;
-  padding:16px;
+.wrap{
+  max-width:820px;
+  margin:0 auto;
+  padding:14px;
 }
-.list{display:flex;flex-direction:column;gap:12px}
 
-.chips{display:flex;gap:10px;flex-wrap:wrap}
-.chip{
-  padding:9px 13px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  font-size:15px;
-  cursor:pointer;
-  user-select:none;
+/* Header */
+.header{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:rgba(247,241,225,.9);
+  backdrop-filter:blur(10px);
+  padding:12px 6px 10px;
+  border-bottom:1px solid var(--line);
 }
-.chip.active{background:#101113;color:#fff;border-color:#101113}
 
-input,select,textarea{
-  width:100%;
-  padding:13px 14px;
-  border-radius:16px;
-  border:1px solid var(--line);
-  font-size:18px;
-  outline:none;
-}
-textarea{min-height:92px;resize:vertical}
-label{font-size:15px;color:var(--muted);display:block;margin-top:14px;margin-bottom:8px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.hidden{display:none}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-.kicker{font-size:15px;color:var(--muted);margin-top:4px}
-.beanName{font-weight:800;font-size:23px;line-height:1.12}
-.metaLine{font-size:18px;color:#1a1b1f;letter-spacing:-0.01em;margin-top:8px}
-.metaMuted{font-size:17px;color:var(--muted);margin-top:6px}
-.actions{display:flex;gap:10px;margin-top:12px}
-.actions .btn{min-width:110px}
-
-.flavorBlock{margin-top:6px}
-.flavorRow{margin-top:10px}
-.flavorTitle{font-size:15px;color:var(--muted);margin-bottom:8px}
-
-.footerBtns{margin-top:16px}
-.footerBtns .btnPrimary{width:100%;padding:16px 16px;border-radius:22px;font-size:18px}
-.footerBtns .btnDanger{margin-top:12px}
-
-.summaryBar{
+.headerRow{
   display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:flex-start;
-  justify-content:space-between;
-  margin:10px 0 14px;
-}
-.summaryTabs{display:flex;gap:8px;flex-wrap:wrap}
-.statPills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
-.pill{
-  border:1px solid var(--line);
-  background:#fff;
-  border-radius:999px;
-  padding:8px 12px;
-  font-size:14px;
-  color:var(--muted);
-  font-weight:700;
-}
-
-.sortRow{
-  display:flex;
-  gap:10px;
   align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+/* Cards */
+.card{
+  background:#fff;
+  border-radius:var(--radius-lg);
+  border:2px solid var(--line);
+  box-shadow:0 10px 18px rgba(102,55,27,.14);
+  padding:14px;
+}
+
+/* Input tiles */
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.tile{
+  background:var(--panel);
+  border-radius:var(--radius);
+  border:2px solid var(--line);
+  padding:12px;
+  min-height:76px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+.tile .label{
+  font-size:12.5px;
+  color:var(--muted);
+}
+
+.tile .value{
+  font-size:22px;
+  font-weight:800;
+}
+
+/* Chips */
+.chips{
+  display:flex;
   flex-wrap:wrap;
-  justify-content:flex-end;
+  gap:10px;
 }
-.sortLabel{
-  font-size:14px;
-  color:var(--muted);
-  font-weight:800;
-  letter-spacing:0.01em;
-}
-.sortSelect{
-  width:auto;
-  padding:9px 12px;
+
+.chip{
   border-radius:999px;
-  font-size:14px;
-  font-weight:800;
-  color:#1a1b1f;
+  border:2px solid var(--line);
+  padding:8px 12px;
+  background:#fff;
+  font-size:13.5px;
 }
 
-.dayHeader{
-  font-size:14px;
-  color:var(--muted);
-  font-weight:800;
-  letter-spacing:0.01em;
-  padding:6px 2px 0;
+.chip.active{
+  background:var(--accent);
+  color:#fff;
 }
 
-.badge{
-  display:inline-flex; align-items:center; gap:6px;
-  border:1px solid var(--line);
+/* Primary button */
+.primary{
+  width:100%;
+  min-height:56px;
   border-radius:999px;
-  padding:6px 10px;
-  font-size:14px;
-  color:var(--muted);
+  border:2px solid var(--line);
+  background:var(--accent);
+  color:#fff;
+  font-size:15.5px;
   font-weight:800;
-  margin-top:10px;
 }
-.dot{width:8px;height:8px;border-radius:999px;background:#bbb}
 
-.help{font-size:13px;color:var(--muted);line-height:1.35;margin-top:8px}
-
-@media (max-width:420px){
-  .wrap{padding:12px}
-  .title{font-size:26px}
-  .beanName{font-size:22px}
-  .metaLine{font-size:17px}
-  .metaMuted{font-size:16px}
+/* Bottom nav */
+.bottomNav{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:12px;
+  width:min(430px,calc(100% - 24px));
+  background:#fff;
+  border-radius:999px;
+  border:2px solid var(--line);
+  box-shadow:0 10px 18px rgba(102,55,27,.14);
+  padding:8px;
+  display:flex;
+  gap:6px;
 }
+
+.bottomNav button{
+  flex:1;
+  border:0;
+  background:transparent;
+  border-radius:999px;
+  padding:10px 12px;
+  font-weight:700;
+  color:var(--text);
+}
+
+.bottomNav button.active{
+  background:var(--panel);
+}
+</style>
+
 </style>
 </head>
 
