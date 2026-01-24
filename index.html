@@ -1,1154 +1,1210 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Espresso Tracker — Service Mode</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Espresso Tracker</title>
 
-<link rel="icon" type="image/png" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#111111">
+  <!-- Optional (keep if you already have these files). Safe to remove. -->
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#B4833D">
 
-<style>
-<style>
-:root{
-  /* Palette */
-  --bg:#F7F1E1;        /* Old lace */
-  --panel:#E3D8C1;     /* Bone */
-  --text:#66371B;      /* Kobicha */
-  --muted:rgba(102,55,27,.65);
+  <style>
+    :root{
+      /* Palette */
+      --bg:#F7F1E1;        /* Old lace */
+      --panel:#E3D8C1;     /* Bone */
+      --text:#66371B;      /* Kobicha */
+      --muted:rgba(102,55,27,.65);
+      --accent:#B4833D;    /* Dark goldenrod */
+      --danger:#c62f2f;
 
-  --accent:#B4833D;    /* Dark goldenrod */
-  --danger:#c62f2f;
+      /* Effects */
+      --line:rgba(102,55,27,.28);
+      --hover:rgba(180,131,61,.14);
+      --shadow:0 10px 18px rgba(102,55,27,.14);
 
-  --line:rgba(102,55,27,.28);
-  --hover:rgba(180,131,61,.14);
+      /* Shape */
+      --radius:18px;
+      --radius-lg:26px;
+      --radius-sm:14px;
 
-  /* Shape */
-  --radius:18px;
-  --radius-lg:26px;
-  --radius-sm:14px;
+      /* Typography (keep system font like your current UI) */
+      --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,Arial;
+    }
 
-  /* Font (same as your current UI) */
-  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,Arial;
-}
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
 
-*{ box-sizing:border-box }
+    .wrap{
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 14px 14px 90px;
+    }
 
-html,body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--sans);
-}
+    .header{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(247,241,225,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .headerInner{
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 12px 14px 10px;
+    }
+    .headerRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+    .brand img{
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      border: 2px solid var(--line);
+      background:#fff;
+      box-shadow: 0 6px 10px rgba(102,55,27,.10);
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .brandTitle{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width: 0;
+    }
+    .brandTitle .h1{
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      line-height: 1.1;
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brandTitle .sub{
+      font-size: 13px;
+      color: var(--muted);
+      margin:0;
+    }
 
-.wrap{
-  max-width:820px;
-  margin:0 auto;
-  padding:14px;
-}
+    .topActions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
 
-/* Header */
-.header{
-  position:sticky;
-  top:0;
-  z-index:10;
-  background:rgba(247,241,225,.9);
-  backdrop-filter:blur(10px);
-  padding:12px 6px 10px;
-  border-bottom:1px solid var(--line);
-}
+    .btn{
+      border-radius: 999px;
+      border: 2px solid var(--line);
+      background:#fff;
+      color: var(--text);
+      padding: 10px 12px;
+      font-weight: 750;
+      font-size: 14px;
+      box-shadow: 0 6px 10px rgba(102,55,27,.10);
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{ transform: translateY(1px); }
 
-.headerRow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
+    .primary{
+      background: var(--accent);
+      color:#fff;
+      border-color: rgba(102,55,27,.40);
+      box-shadow: var(--shadow);
+      padding: 11px 14px;
+    }
 
-/* Cards */
-.card{
-  background:#fff;
-  border-radius:var(--radius-lg);
-  border:2px solid var(--line);
-  box-shadow:0 10px 18px rgba(102,55,27,.14);
-  padding:14px;
-}
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
 
-/* Input tiles */
-.grid2{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
+    .card{
+      background:#fff;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
 
-.tile{
-  background:var(--panel);
-  border-radius:var(--radius);
-  border:2px solid var(--line);
-  padding:12px;
-  min-height:76px;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-}
+    .sectionTitle{
+      font-size: 12.5px;
+      color: var(--muted);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin: 10px 2px 8px;
+      font-weight: 800;
+    }
 
-.tile .label{
-  font-size:12.5px;
-  color:var(--muted);
-}
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
 
-.tile .value{
-  font-size:22px;
-  font-weight:800;
-}
+    .fileRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
 
-/* Chips */
-.chips{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
+    input[type="file"]{
+      border: 2px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: #fff;
+      max-width: 100%;
+    }
 
-.chip{
-  border-radius:999px;
-  border:2px solid var(--line);
-  padding:8px 12px;
-  background:#fff;
-  font-size:13.5px;
-}
+    select, input[type="text"], input[type="number"], textarea{
+      width: 100%;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      outline: none;
+    }
+    textarea{ min-height: 84px; resize: vertical; }
 
-.chip.active{
-  background:var(--accent);
-  color:#fff;
-}
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    @media (min-width: 760px){
+      .stats{ grid-template-columns: repeat(4, 1fr); }
+    }
+    .stat{
+      background: var(--panel);
+      border-radius: var(--radius);
+      border: 2px solid var(--line);
+      padding: 12px;
+      box-shadow: 0 8px 14px rgba(102,55,27,.12);
+    }
+    .stat .k{ font-size: 12.5px; color: var(--muted); font-weight: 800; }
+    .stat .v{ font-size: 22px; font-weight: 900; margin-top: 6px; }
 
-/* Primary button */
-.primary{
-  width:100%;
-  min-height:56px;
-  border-radius:999px;
-  border:2px solid var(--line);
-  background:var(--accent);
-  color:#fff;
-  font-size:15.5px;
-  font-weight:800;
-}
+    .seg{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .seg button{
+      border-radius: 999px;
+      border: 2px solid var(--line);
+      background:#fff;
+      color: var(--text);
+      padding: 9px 12px;
+      font-weight: 800;
+      cursor:pointer;
+      box-shadow: 0 6px 10px rgba(102,55,27,.10);
+    }
+    .seg button.active{
+      background: var(--accent);
+      color:#fff;
+      border-color: rgba(102,55,27,.40);
+      box-shadow: var(--shadow);
+    }
 
-/* Bottom nav */
-.bottomNav{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:12px;
-  width:min(430px,calc(100% - 24px));
-  background:#fff;
-  border-radius:999px;
-  border:2px solid var(--line);
-  box-shadow:0 10px 18px rgba(102,55,27,.14);
-  padding:8px;
-  display:flex;
-  gap:6px;
-}
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
 
-.bottomNav button{
-  flex:1;
-  border:0;
-  background:transparent;
-  border-radius:999px;
-  padding:10px 12px;
-  font-weight:700;
-  color:var(--text);
-}
+    .shotItem{
+      background:#fff;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--line);
+      box-shadow: 0 10px 18px rgba(102,55,27,.12);
+      padding: 12px 12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 12px;
+    }
+    .shotMain{
+      min-width: 0;
+      flex: 1;
+    }
+    .shotTop{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      border: 2px solid var(--line);
+      background: var(--panel);
+      font-size: 13px;
+      font-weight: 850;
+      white-space:nowrap;
+    }
+    .pill.result{
+      background:#fff;
+    }
+    .pill.result.good{ background: rgba(180,131,61,.15); }
+    .pill.result.perfect{ background: rgba(180,131,61,.28); }
+    .pill.result.bad{ background: rgba(198,47,47,.12); border-color: rgba(198,47,47,.30); }
 
-.bottomNav button.active{
-  background:var(--panel);
-}
-</style>
+    .shotMeta{
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
 
-</style>
+    .shotActions{
+      display:flex;
+      gap:8px;
+      flex: 0 0 auto;
+    }
+    .iconBtn{
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      border: 2px solid var(--line);
+      background:#fff;
+      box-shadow: 0 6px 10px rgba(102,55,27,.10);
+      cursor:pointer;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .empty{
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--line);
+      background: rgba(255,255,255,.55);
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.30);
+      display:none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px;
+      z-index: 100;
+    }
+    .modalOverlay.show{ display:flex; }
+    .modal{
+      width: min(860px, 100%);
+      background: #fff;
+      border-radius: 28px;
+      border: 2px solid var(--line);
+      box-shadow: 0 22px 40px rgba(0,0,0,.18);
+      overflow:hidden;
+      max-height: calc(100vh - 24px);
+      display:flex;
+      flex-direction:column;
+    }
+    .modalHeader{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(247,241,225,.65);
+    }
+    .modalHeader h2{
+      margin:0;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .modalBody{
+      padding: 14px;
+      overflow:auto;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 420px){
+      .grid3{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .label{
+      font-size: 12.5px;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .chip{
+      border-radius: 999px;
+      border: 2px solid var(--line);
+      padding: 9px 12px;
+      background:#fff;
+      font-size: 13.5px;
+      font-weight: 850;
+      cursor:pointer;
+      user-select:none;
+      box-shadow: 0 6px 10px rgba(102,55,27,.10);
+    }
+    .chip.active{
+      background: var(--accent);
+      color:#fff;
+      border-color: rgba(102,55,27,.45);
+      box-shadow: var(--shadow);
+    }
+
+    .mutedHelp{
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+      font-weight: 700;
+    }
+
+    .danger{
+      border-color: rgba(198,47,47,.35) !important;
+      color: #8a1d1d !important;
+      background: rgba(198,47,47,.10) !important;
+    }
+  </style>
 </head>
 
 <body>
-<div class="wrap">
+  <div class="header">
+    <div class="headerInner">
+      <div class="headerRow">
+        <div class="brand">
+          <img src="coffee_129913.png" alt="Coffee icon">
+          <div class="brandTitle">
+            <p class="h1">Espresso Tracker</p>
+            <p class="sub" id="todayLabel">Today · —</p>
+          </div>
+        </div>
 
-<!-- SERVICE MODE -->
-<section id="service">
-  <div class="top">
-    <div>
-      <div class="title">Espresso Tracker</div>
-      <div class="subtitle" id="today"></div>
-      <div class="subtitle" id="rangeSubtitle" style="margin-top:6px"></div>
-    </div>
-  </div>
-
-  <button class="btn btnPrimary" style="width:100%;margin:10px 0 12px" id="btnNewTop">＋ New Shot</button>
-
-  <!-- Backup -->
-  <div class="row" style="gap:10px;margin-bottom:12px">
-    <button class="btn btnSmall" id="btnExport" type="button">Export</button>
-    <button class="btn btnSmall" id="btnImport" type="button">Import</button>
-    <input id="importFile" type="file" accept="application/json" class="hidden">
-  </div>
-
-  <div class="summaryBar">
-    <div class="summaryTabs chips" id="rangeTabs"></div>
-
-    <div class="statPills">
-      <div id="stats" class="statPills"></div>
-      <div class="sortRow">
-        <div class="sortLabel">Sorted by</div>
-        <select id="sortSelect" class="sortSelect">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="bean">Bean</option>
-        </select>
+        <div class="topActions">
+          <button class="btn primary" id="newShotBtn">+ New Shot</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="list" id="shotList"></div>
-</section>
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <div class="toolbar">
+          <button class="btn" id="exportBtn">Export</button>
+          <button class="btn" id="importBtn">Import</button>
+        </div>
 
-<!-- NEW SHOT -->
-<section id="new" class="hidden">
-  <div class="top">
-    <div>
-      <div class="title" id="formTitle">New Shot</div>
-      <div class="kicker" id="formKicker">Fast log</div>
+        <div class="fileRow">
+          <input type="file" id="fileInput" accept="application/json,.json" />
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="row" style="align-items:flex-start">
+        <div style="flex:1; min-width:260px">
+          <div class="sectionTitle">Range</div>
+          <div class="seg" id="rangeSeg">
+            <button data-range="today" class="active">Today</button>
+            <button data-range="week">This Week (Mon–Sun)</button>
+            <button data-range="month">Month</button>
+          </div>
+        </div>
+
+        <div style="width:240px; max-width:100%">
+          <div class="sectionTitle">Sorted by</div>
+          <select id="sortSelect">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="stats" id="statsGrid">
+        <div class="stat">
+          <div class="k">Shots</div>
+          <div class="v" id="statShots">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Beans</div>
+          <div class="v" id="statBeans">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Good/Perfect</div>
+          <div class="v" id="statGood">0%</div>
+        </div>
+        <div class="stat">
+          <div class="k">Avg Time</div>
+          <div class="v" id="statAvgTime">—</div>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="list" id="shotList"></div>
     </div>
-    <button class="btn btnGhost" id="btnCancel">Cancel</button>
   </div>
 
-  <label>Date</label>
-  <div class="chips" id="dateChips"></div>
-  <div class="help">Choose “Yesterday” to re-log past shots.</div>
-
-  <label>Bean</label>
-  <div class="row">
-    <input id="bean" list="beanList" placeholder="Type bean name…" autocomplete="off">
-    <button class="btn btnSmall" id="btnAddBean" type="button">Add</button>
-  </div>
-  <datalist id="beanList"></datalist>
-
-  <label>Bean Type</label>
-  <div class="chips" id="beanTypeChips"></div>
-  <input id="customBlend" class="hidden" placeholder="Describe blend (e.g., 70/30 Arabica-Robusta)">
-
-  <label>Roast Profile</label>
-  <div class="chips" id="roastChips"></div>
-
-  <label>Brew Method</label>
-  <select id="brewMethod">
-    <option value="Espresso">Espresso</option>
-    <option value="Pour Over">Pour Over</option>
-    <option value="Cold Brew">Cold Brew</option>
-  </select>
-
-  <div id="fieldsBlock">
-    <div class="grid2" style="margin-top:10px">
-      <div>
-        <label id="lblGrind" style="margin-top:0">Grind</label>
-        <input id="grind" placeholder="30">
+  <!-- Modal: New Shot -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="New Shot">
+      <div class="modalHeader">
+        <div>
+          <h2>New Shot</h2>
+          <div class="mutedHelp">Fast log · keeps your workflow calm</div>
+        </div>
+        <div style="display:flex; gap:10px">
+          <button class="btn" id="closeModalBtn">Cancel</button>
+          <button class="btn primary" id="saveShotBtn">Save</button>
+        </div>
       </div>
-      <div>
-        <label id="lblDose" style="margin-top:0">Dose</label>
-        <input id="dose" placeholder="18g">
-      </div>
-      <div>
-        <label id="lblYield" style="margin-top:0">Yield</label>
-        <input id="yield" placeholder="36g / 30ml">
-      </div>
-      <div>
-        <label id="lblTime" style="margin-top:0">Time</label>
-        <input id="time" placeholder="28s">
+
+      <div class="modalBody">
+        <div class="field">
+          <div class="label">Date</div>
+          <select id="dateSelect">
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+          </select>
+          <div class="mutedHelp">Choose “Yesterday” to re-log past shots.</div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="grid2">
+          <div class="field">
+            <div class="label">Bean</div>
+            <input id="beanInput" type="text" placeholder="Type bean name (e.g., Mt Apo)..." />
+            <div class="mutedHelp">Tip: keep names consistent for cleaner stats.</div>
+          </div>
+
+          <div class="field">
+            <div class="label">Bean Type</div>
+            <select id="beanTypeSelect">
+              <option value="Arabica">Arabica</option>
+              <option value="Robusta">Robusta</option>
+              <option value="Liberica">Liberica</option>
+              <option value="Custom Blend">Custom Blend</option>
+            </select>
+            <input id="blendInput" type="text" placeholder="Describe blend (e.g., 70/30)" style="margin-top:10px; display:none;">
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="field">
+          <div class="label">Roast Profile</div>
+          <div class="chips" id="roastChips">
+            <div class="chip" data-value="Light">Light</div>
+            <div class="chip" data-value="Light–Med">Light–Med</div>
+            <div class="chip active" data-value="Medium">Medium</div>
+            <div class="chip" data-value="Med–Dark">Med–Dark</div>
+            <div class="chip" data-value="Dark">Dark</div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="grid2">
+          <div class="field">
+            <div class="label">Brew Method</div>
+            <select id="brewSelect">
+              <option value="Espresso">Espresso</option>
+              <option value="Ristretto">Ristretto</option>
+              <option value="Lungo">Lungo</option>
+              <option value="Americano">Americano</option>
+              <option value="Pour Over">Pour Over</option>
+              <option value="Moka Pot">Moka Pot</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="label">Result Tag</div>
+            <div class="chips" id="resultChips">
+              <div class="chip" data-value="Perfect">Perfect</div>
+              <div class="chip active" data-value="Good">Good</div>
+              <div class="chip" data-value="Too Fast">Too Fast</div>
+              <div class="chip" data-value="Too Runny">Too Runny</div>
+              <div class="chip" data-value="Too Tight">Too Tight</div>
+              <div class="chip" data-value="Bitter">Bitter</div>
+              <div class="chip" data-value="Sour">Sour</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="grid2">
+          <div class="field">
+            <div class="label">Grind</div>
+            <input id="grindInput" type="number" inputmode="numeric" step="1" min="0" placeholder="e.g., 30">
+          </div>
+          <div class="field">
+            <div class="label">Dose (g)</div>
+            <input id="doseInput" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g., 18">
+          </div>
+
+          <div class="field">
+            <div class="label">Yield (ml)</div>
+            <input id="yieldInput" type="number" inputmode="decimal" step="0.5" min="0" placeholder="e.g., 36">
+          </div>
+          <div class="field">
+            <div class="label">Time (s)</div>
+            <input id="timeInput" type="number" inputmode="numeric" step="1" min="0" placeholder="e.g., 28">
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="field">
+          <div class="label">Notes (optional)</div>
+          <textarea id="notesInput" placeholder="Quick notes: puck prep, taste, adjustments..."></textarea>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <button class="btn danger" id="clearDraftBtn" type="button">Clear draft fields</button>
       </div>
     </div>
   </div>
 
-  <label>Flavor Profile</label>
-  <div class="flavorBlock" id="flavorBlock"></div>
-
-  <label>Result</label>
-  <div class="chips" id="resultChips"></div>
-  <input id="resultCustom" class="hidden" placeholder="Custom result (e.g., Channeling, Under-extracted)">
-
-  <label>Notes</label>
-  <textarea id="notes" placeholder="Quick notes… (optional)"></textarea>
-
-  <div class="footerBtns">
-    <button class="btn btnPrimary" id="btnSave">Save</button>
-    <button class="btn btnDanger hidden" id="btnDelete">Delete</button>
-  </div>
-</section>
-
-</div>
-
-<script>
-/* ---------------- Storage ---------------- */
-const STORAGE_SHOTS = 'shots';
-const STORAGE_BEANS = 'beanLibrary';
-
-let shots = safeParse(localStorage.getItem(STORAGE_SHOTS), []);
-let beanLibrary = safeParse(localStorage.getItem(STORAGE_BEANS), []);
-
-let view = 'service';
-let editingId = null;
-
-const BEAN_TYPES = ['Arabica','Robusta','Liberica','Custom Blend'];
-const ROAST_PROFILES = ['Light','Light–Med','Medium','Med–Dark','Dark'];
-
-const FLAVOR_KEYS = [
-  { key:'acidity', label:'Acidity' },
-  { key:'sweetness', label:'Sweetness' },
-  { key:'body', label:'Body' },
-  { key:'bitterness', label:'Bitterness' }
-];
-const FLAVOR_LEVELS = ['Low','Med','High'];
-
-const RESULT_TAGS = ['Perfect','Good','Too Fast','Too Runny','Too Tight','Bitter','Sour','Custom'];
-
-const RANGE_TABS = [
-  { key:'today', label:'Today' },
-  { key:'thisWeek', label:'This Week (Mon–Sun)' },
-  { key:'month', label:'Month' }
-];
-
-let range = 'today';
-let sortMode = 'newest';
-
-/* Date logging */
-let selectedDate = todayKey(); // local date
-
-const els = {
-  service: document.getElementById('service'),
-  new: document.getElementById('new'),
-  today: document.getElementById('today'),
-  rangeSubtitle: document.getElementById('rangeSubtitle'),
-  shotList: document.getElementById('shotList'),
-  stats: document.getElementById('stats'),
-  rangeTabs: document.getElementById('rangeTabs'),
-  sortSelect: document.getElementById('sortSelect'),
-
-  btnNewTop: document.getElementById('btnNewTop'),
-  btnCancel: document.getElementById('btnCancel'),
-  btnSave: document.getElementById('btnSave'),
-  btnDelete: document.getElementById('btnDelete'),
-  btnAddBean: document.getElementById('btnAddBean'),
-
-  btnExport: document.getElementById('btnExport'),
-  btnImport: document.getElementById('btnImport'),
-  importFile: document.getElementById('importFile'),
-
-  dateChips: document.getElementById('dateChips'),
-
-  formTitle: document.getElementById('formTitle'),
-  formKicker: document.getElementById('formKicker'),
-
-  bean: document.getElementById('bean'),
-  beanList: document.getElementById('beanList'),
-
-  beanTypeChips: document.getElementById('beanTypeChips'),
-  customBlend: document.getElementById('customBlend'),
-
-  roastChips: document.getElementById('roastChips'),
-
-  brewMethod: document.getElementById('brewMethod'),
-
-  lblGrind: document.getElementById('lblGrind'),
-  lblDose: document.getElementById('lblDose'),
-  lblYield: document.getElementById('lblYield'),
-  lblTime: document.getElementById('lblTime'),
-
-  grind: document.getElementById('grind'),
-  dose: document.getElementById('dose'),
-  yield: document.getElementById('yield'),
-  time: document.getElementById('time'),
-
-  flavorBlock: document.getElementById('flavorBlock'),
-
-  resultChips: document.getElementById('resultChips'),
-  resultCustom: document.getElementById('resultCustom'),
-
-  notes: document.getElementById('notes')
-};
-
-let currentBeanType = 'Arabica';
-let currentRoast = 'Medium';
-
-let currentFlavor = { acidity:null, sweetness:null, body:null, bitterness:null };
-let currentResultTag = null;
-let currentResultCustom = '';
-
-init();
-
-/* ---------------- Init ---------------- */
-function init(){
-  els.today.textContent = 'Today · ' + fmtDate(new Date());
-
-  renderRangeTabs();
-  renderDateChips();
-  renderBeanTypeChips();
-  renderRoastChips();
-  renderFlavorChips();
-  renderResultChips();
-
-  normalizeBeanLibrary();
-  renderBeanDatalist();
-
-  els.btnNewTop.addEventListener('click', openNew);
-  els.btnCancel.addEventListener('click', backToService);
-  els.btnSave.addEventListener('click', saveShot);
-  els.btnDelete.addEventListener('click', deleteCurrentShot);
-  els.btnAddBean.addEventListener('click', addBeanFromPrompt);
-
-  els.brewMethod.addEventListener('change', applyMethodLabels);
-
-  els.sortSelect.addEventListener('change', ()=>{
-    sortMode = els.sortSelect.value || 'newest';
-    renderService();
-  });
-
-  // Backup
-  els.btnExport.addEventListener('click', exportData);
-  els.btnImport.addEventListener('click', ()=> els.importFile.click());
-  els.importFile.addEventListener('change', importData);
-
-  applyMethodLabels();
-  render();
-
-  // Safe SW register (won't break UI if SW file missing)
-  registerSW();
-}
-
-/* ---------------- Date (LOCAL TIME) ---------------- */
-function todayKey(d){
-  d = d || new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return y + '-' + m + '-' + day;
-}
-
-function fmtDate(d){
-  return todayKey(d);
-}
-
-function yesterdayKey(){
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return todayKey(d);
-}
-
-function fmtTime(d){
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  return hh + ':' + mm;
-}
-
-function fmtStamp(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  if(Number.isNaN(d.getTime())) return '';
-  return fmtDate(d) + ' · ' + fmtTime(d);
-}
-
-/* ---------------- Range helpers ---------------- */
-function weekMonSunBounds(now){
-  now = now || new Date();
-  const day = now.getDay(); // 0=Sun, 1=Mon
-  const diffToMon = (day === 0 ? -6 : 1 - day);
-
-  const start = new Date(now);
-  start.setDate(now.getDate() + diffToMon);
-  start.setHours(0,0,0,0);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23,59,59,999);
-
-  return { start, end };
-}
-
-function shortMD(d){
-  return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
-}
-
-function prettyDayLabel(dateStr){
-  const t = todayKey(new Date());
-  const y = yesterdayKey();
-
-  if(dateStr === t) return 'Today';
-  if(dateStr === y) return 'Yesterday';
-
-  const d = new Date(dateStr + 'T00:00:00');
-  if(Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
-}
-
-function getShotDateISO(s){
-  if(s.createdAt) return s.createdAt;
-  if(s.date) return s.date + 'T12:00:00.000Z';
-  return null;
-}
-
-/* ---------------- Utilities ---------------- */
-function safeParse(txt, fallback){
-  try{ return txt ? JSON.parse(txt) : fallback; } catch(e){ return fallback; }
-}
-
-function persist(){
-  localStorage.setItem(STORAGE_SHOTS, JSON.stringify(shots));
-  localStorage.setItem(STORAGE_BEANS, JSON.stringify(beanLibrary));
-}
-
-function escapeHtml(s){
-  return (s??'').toString()
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
-}
-
-/* ---------------- Beans ---------------- */
-function normalizeBeanLibrary(){
-  const set = new Set();
-  beanLibrary.forEach(b=>{
-    const t = (b||'').toString().trim();
-    if(t) set.add(t);
-  });
-  beanLibrary = Array.from(set).sort((a,b)=>a.localeCompare(b));
-  persist();
-}
-
-function renderBeanDatalist(){
-  els.beanList.innerHTML = beanLibrary.map(b=>'<option value="' + escapeHtml(b) + '"></option>').join('');
-}
-
-function addBeanToLibrary(name){
-  const t = (name||'').toString().trim();
-  if(!t) return;
-  if(!beanLibrary.includes(t)){
-    beanLibrary.push(t);
-    normalizeBeanLibrary();
-    renderBeanDatalist();
-  }
-}
-
-function addBeanFromPrompt(){
-  const v = prompt('Add bean name:');
-  if(!v) return;
-  addBeanToLibrary(v);
-  els.bean.value = v.trim();
-  els.bean.focus();
-}
-
-/* ---------------- Date chips ---------------- */
-function renderDateChips(){
-  const options = [
-    { key: todayKey(new Date()), label: 'Today' },
-    { key: yesterdayKey(), label: 'Yesterday' }
-  ];
-
-  els.dateChips.innerHTML = '';
-  options.forEach(opt=>{
-    const c = document.createElement('div');
-    c.className = 'chip' + (opt.key === selectedDate ? ' active' : '');
-    c.textContent = opt.label;
-    c.addEventListener('click', ()=>{
-      selectedDate = opt.key;
-      renderDateChips();
-    });
-    els.dateChips.appendChild(c);
-  });
-}
-
-/* ---------------- Range tabs ---------------- */
-function renderRangeTabs(){
-  els.rangeTabs.innerHTML = '';
-  RANGE_TABS.forEach(t=>{
-    const c = document.createElement('div');
-    c.className = 'chip' + (t.key===range ? ' active':'');
-    c.textContent = t.label;
-    c.addEventListener('click', ()=>{
-      range = t.key;
-      renderRangeTabs();
-      renderService();
-    });
-    els.rangeTabs.appendChild(c);
-  });
-}
-
-/* ---------------- Bean Type / Roast chips ---------------- */
-function renderBeanTypeChips(){
-  els.beanTypeChips.innerHTML = '';
-  BEAN_TYPES.forEach(t=>{
-    const d = document.createElement('div');
-    d.className = 'chip' + (t===currentBeanType ? ' active' : '');
-    d.textContent = t;
-    d.addEventListener('click', ()=>{
-      currentBeanType = t;
-      [...els.beanTypeChips.children].forEach(x=>x.classList.remove('active'));
-      d.classList.add('active');
-      els.customBlend.classList.toggle('hidden', t!=='Custom Blend');
-      if(t!=='Custom Blend') els.customBlend.value = '';
-    });
-    els.beanTypeChips.appendChild(d);
-  });
-}
-
-function renderRoastChips(){
-  els.roastChips.innerHTML = '';
-  ROAST_PROFILES.forEach(r=>{
-    const c = document.createElement('div');
-    c.className = 'chip' + (r===currentRoast ? ' active' : '');
-    c.textContent = r;
-    c.addEventListener('click', ()=>{
-      currentRoast = r;
-      [...els.roastChips.children].forEach(x=>x.classList.remove('active'));
-      c.classList.add('active');
-    });
-    els.roastChips.appendChild(c);
-  });
-}
-
-function applyBeanTypeToUI(beanType){
-  currentBeanType = beanType || 'Arabica';
-  [...els.beanTypeChips.children].forEach(ch=>{
-    ch.classList.toggle('active', ch.textContent === currentBeanType);
-  });
-  els.customBlend.classList.toggle('hidden', currentBeanType!=='Custom Blend');
-}
-
-function applyRoastToUI(roast){
-  currentRoast = roast || 'Medium';
-  [...els.roastChips.children].forEach(ch=>{
-    ch.classList.toggle('active', ch.textContent === currentRoast);
-  });
-}
-
-/* ---------------- Flavor chips ---------------- */
-function renderFlavorChips(){
-  els.flavorBlock.innerHTML = '';
-  FLAVOR_KEYS.forEach(row=>{
-    const wrap = document.createElement('div');
-    wrap.className = 'flavorRow';
-
-    const title = document.createElement('div');
-    title.className = 'flavorTitle';
-    title.textContent = row.label;
-    wrap.appendChild(title);
-
-    const chips = document.createElement('div');
-    chips.className = 'chips';
-
-    FLAVOR_LEVELS.forEach(level=>{
-      const c = document.createElement('div');
-      c.className = 'chip';
-      c.textContent = level;
-      c.addEventListener('click', ()=>{
-        const cur = currentFlavor[row.key];
-        if(cur === level){
-          currentFlavor[row.key] = null;
-          c.classList.remove('active');
-        }else{
-          currentFlavor[row.key] = level;
-          [...chips.children].forEach(x=>x.classList.remove('active'));
-          c.classList.add('active');
-        }
+  <script>
+    /**********************
+     * Storage + Utilities
+     **********************/
+    const STORAGE_KEY = "espresso_tracker_shots_v1";
+    const DRAFT_KEY = "espresso_tracker_draft_v1";
+    const UI_KEY = "espresso_tracker_ui_v1";
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function pad2(n){ return String(n).padStart(2,"0"); }
+    function toISODateLocal(d){
+      // Local date YYYY-MM-DD
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+    function startOfWeekMonday(d){
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const day = x.getDay(); // 0 Sun..6 Sat
+      const diff = (day === 0) ? -6 : (1 - day);
+      x.setDate(x.getDate() + diff);
+      x.setHours(0,0,0,0);
+      return x;
+    }
+    function endOfWeekSunday(d){
+      const s = startOfWeekMonday(d);
+      const e = new Date(s);
+      e.setDate(e.getDate() + 6);
+      e.setHours(23,59,59,999);
+      return e;
+    }
+    function startOfMonth(d){
+      const s = new Date(d.getFullYear(), d.getMonth(), 1);
+      s.setHours(0,0,0,0);
+      return s;
+    }
+    function endOfMonth(d){
+      const e = new Date(d.getFullYear(), d.getMonth()+1, 0);
+      e.setHours(23,59,59,999);
+      return e;
+    }
+    function safeParseJSON(text){
+      try { return { ok:true, data: JSON.parse(text) }; }
+      catch(e){ return { ok:false, error: e }; }
+    }
+    function download(filename, text){
+      const blob = new Blob([text], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+    function uid(){
+      return Math.random().toString(36).slice(2,9) + "-" + Date.now().toString(36);
+    }
+
+    /**********************
+     * Data
+     **********************/
+    let shots = loadShots();
+    let range = loadUI().range ?? "today";
+    let sort = loadUI().sort ?? "newest";
+
+    function loadShots(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      const parsed = safeParseJSON(raw);
+      if(!parsed.ok) return [];
+      if(Array.isArray(parsed.data)) return parsed.data;
+      if(parsed.data && Array.isArray(parsed.data.shots)) return parsed.data.shots;
+      return [];
+    }
+    function saveShots(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shots));
+    }
+    function loadDraft(){
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if(!raw) return null;
+      const parsed = safeParseJSON(raw);
+      if(!parsed.ok) return null;
+      return parsed.data;
+    }
+    function saveDraft(d){
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    }
+    function clearDraft(){
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    function loadUI(){
+      const raw = localStorage.getItem(UI_KEY);
+      if(!raw) return {};
+      const parsed = safeParseJSON(raw);
+      if(!parsed.ok) return {};
+      return parsed.data || {};
+    }
+    function saveUI(){
+      localStorage.setItem(UI_KEY, JSON.stringify({ range, sort }));
+    }
+
+    /**********************
+     * Elements
+     **********************/
+    const todayLabel = $("#todayLabel");
+    const newShotBtn = $("#newShotBtn");
+    const exportBtn = $("#exportBtn");
+    const importBtn = $("#importBtn");
+    const fileInput = $("#fileInput");
+
+    const rangeSeg = $("#rangeSeg");
+    const sortSelect = $("#sortSelect");
+    const shotList = $("#shotList");
+
+    const statShots = $("#statShots");
+    const statBeans = $("#statBeans");
+    const statGood = $("#statGood");
+    const statAvgTime = $("#statAvgTime");
+
+    const modalOverlay = $("#modalOverlay");
+    const closeModalBtn = $("#closeModalBtn");
+    const saveShotBtn = $("#saveShotBtn");
+
+    const dateSelect = $("#dateSelect");
+    const beanInput = $("#beanInput");
+    const beanTypeSelect = $("#beanTypeSelect");
+    const blendInput = $("#blendInput");
+    const roastChips = $("#roastChips");
+    const brewSelect = $("#brewSelect");
+    const resultChips = $("#resultChips");
+    const grindInput = $("#grindInput");
+    const doseInput = $("#doseInput");
+    const yieldInput = $("#yieldInput");
+    const timeInput = $("#timeInput");
+    const notesInput = $("#notesInput");
+    const clearDraftBtn = $("#clearDraftBtn");
+
+    /**********************
+     * Init
+     **********************/
+    function setTodayLabel(){
+      const now = new Date();
+      todayLabel.textContent = `Today · ${toISODateLocal(now)}`;
+    }
+
+    function setActiveSeg(){
+      [...rangeSeg.querySelectorAll("button")].forEach(b=>{
+        b.classList.toggle("active", b.dataset.range === range);
       });
-      chips.appendChild(c);
-    });
+      sortSelect.value = sort;
+    }
 
-    wrap.appendChild(chips);
-    els.flavorBlock.appendChild(wrap);
-  });
-}
+    function chipGroupSetActive(container, value){
+      [...container.querySelectorAll(".chip")].forEach(c=>{
+        c.classList.toggle("active", c.dataset.value === value);
+      });
+    }
+    function chipGroupGetValue(container){
+      const el = container.querySelector(".chip.active");
+      return el ? el.dataset.value : "";
+    }
 
-function applyFlavorToUI(flavorProfile){
-  currentFlavor = {
-    acidity: flavorProfile?.acidity ?? null,
-    sweetness: flavorProfile?.sweetness ?? null,
-    body: flavorProfile?.body ?? null,
-    bitterness: flavorProfile?.bitterness ?? null
-  };
+    function openModal(){
+      // Load last draft or last shot defaults
+      const draft = loadDraft();
+      const last = shots.length ? shots[shots.length-1] : null;
 
-  const rows = els.flavorBlock.querySelectorAll('.flavorRow');
-  rows.forEach((rowEl, idx)=>{
-    const key = FLAVOR_KEYS[idx].key;
-    const chips = rowEl.querySelectorAll('.chip');
-    chips.forEach(ch=>{
-      ch.classList.toggle('active', ch.textContent === currentFlavor[key]);
-    });
-  });
-}
+      // Date default
+      dateSelect.value = draft?.datePreset ?? "today";
 
-/* ---------------- Result chips ---------------- */
-function renderResultChips(){
-  els.resultChips.innerHTML = '';
-  RESULT_TAGS.forEach(tag=>{
-    const c = document.createElement('div');
-    c.className = 'chip';
-    c.textContent = tag;
-    c.addEventListener('click', ()=>{
-      const was = (currentResultTag === tag);
-      currentResultTag = was ? null : tag;
+      beanInput.value = draft?.bean ?? (last?.bean ?? "");
+      beanTypeSelect.value = draft?.beanType ?? (last?.beanType ?? "Arabica");
 
-      [...els.resultChips.children].forEach(x=>x.classList.remove('active'));
-      if(!was) c.classList.add('active');
+      // Blend visibility
+      toggleBlend(beanTypeSelect.value);
+      blendInput.value = draft?.blend ?? (last?.blend ?? "");
 
-      els.resultCustom.classList.toggle('hidden', currentResultTag !== 'Custom');
-      if(currentResultTag !== 'Custom'){
-        els.resultCustom.value = '';
-        currentResultCustom = '';
+      chipGroupSetActive(roastChips, draft?.roastProfile ?? (last?.roastProfile ?? "Medium"));
+      brewSelect.value = draft?.brewMethod ?? (last?.brewMethod ?? "Espresso");
+      chipGroupSetActive(resultChips, draft?.result ?? (last?.result ?? "Good"));
+
+      grindInput.value = (draft?.grind ?? last?.grind ?? "");
+      doseInput.value = (draft?.dose ?? last?.dose ?? "");
+      yieldInput.value = (draft?.yield ?? last?.yield ?? "");
+      timeInput.value = (draft?.time ?? last?.time ?? "");
+      notesInput.value = (draft?.notes ?? "");
+
+      modalOverlay.classList.add("show");
+      modalOverlay.setAttribute("aria-hidden","false");
+      // focus
+      setTimeout(()=> beanInput.focus(), 50);
+    }
+
+    function closeModal(){
+      modalOverlay.classList.remove("show");
+      modalOverlay.setAttribute("aria-hidden","true");
+    }
+
+    function toggleBlend(beanType){
+      if(beanType === "Custom Blend"){
+        blendInput.style.display = "block";
+      } else {
+        blendInput.style.display = "none";
+        blendInput.value = "";
       }
-    });
-    els.resultChips.appendChild(c);
-  });
-}
-
-function applyResultToUI(result){
-  currentResultTag = result?.tag ?? null;
-  currentResultCustom = result?.custom ?? '';
-
-  [...els.resultChips.children].forEach(ch=>{
-    ch.classList.toggle('active', ch.textContent === currentResultTag);
-  });
-
-  els.resultCustom.classList.toggle('hidden', currentResultTag !== 'Custom');
-  els.resultCustom.value = (currentResultTag === 'Custom') ? currentResultCustom : '';
-}
-
-/* ---------------- Method labels ---------------- */
-function applyMethodLabels(){
-  const m = els.brewMethod.value;
-
-  els.lblGrind.textContent = 'Grind';
-  els.grind.placeholder = '30';
-  els.grind.parentElement.classList.remove('hidden');
-
-  if(m === 'Espresso'){
-    els.grind.parentElement.classList.remove('hidden');
-    els.lblDose.textContent = 'Dose';
-    els.dose.placeholder = '18g';
-    els.lblYield.textContent = 'Yield';
-    els.yield.placeholder = '36g / 30ml';
-    els.lblTime.textContent = 'Time';
-    els.time.placeholder = '28s';
-  } else if(m === 'Pour Over'){
-    els.grind.parentElement.classList.add('hidden');
-    els.lblDose.textContent = 'Dose';
-    els.dose.placeholder = '18g';
-    els.lblYield.textContent = 'Water';
-    els.yield.placeholder = '280g';
-    els.lblTime.textContent = 'Time';
-    els.time.placeholder = '3:00';
-  } else if(m === 'Cold Brew'){
-    els.grind.parentElement.classList.add('hidden');
-    els.lblDose.textContent = 'Coffee';
-    els.dose.placeholder = '60g';
-    els.lblYield.textContent = 'Water';
-    els.yield.placeholder = '900g';
-    els.lblTime.textContent = 'Brew Time';
-    els.time.placeholder = '12h';
-  }
-}
-
-/* ---------------- Render ---------------- */
-function render(){
-  els.service.classList.toggle('hidden', view!=='service');
-  els.new.classList.toggle('hidden', view!=='new');
-  if(view==='service') renderService();
-}
-
-function withinRange(shot){
-  const iso = getShotDateISO(shot);
-  if(!iso) return false;
-  const d = new Date(iso);
-  if(Number.isNaN(d.getTime())) return false;
-
-  const now = new Date();
-  const today = todayKey(now);
-
-  if(range === 'today'){
-    const date = (shot.createdAt ? shot.createdAt.slice(0,10) : shot.date);
-    return date === today;
-  }
-
-  if(range === 'thisWeek'){
-    const bounds = weekMonSunBounds(now);
-    return d >= bounds.start && d <= bounds.end;
-  }
-
-  if(range === 'month'){
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const start = new Date(y, m, 1, 0,0,0,0);
-    const end = new Date(y, m + 1, 0, 23,59,59,999);
-    return d >= start && d <= end;
-  }
-
-  return false;
-}
-
-function computeStats(arr){
-  const total = arr.length;
-  const beans = new Set(arr.map(s=> (s.bean||'').trim()).filter(Boolean));
-  return { total, uniqueBeans: beans.size };
-}
-
-function renderStats(arr){
-  const st = computeStats(arr);
-  els.stats.innerHTML =
-    '<div class="pill">' + st.total + ' shots</div>' +
-    '<div class="pill">' + st.uniqueBeans + ' beans</div>';
-}
-
-function groupByDay(arr){
-  const map = new Map();
-  arr.forEach(s=>{
-    const date = (s.createdAt ? s.createdAt.slice(0,10) : (s.date||''));
-    if(!date) return;
-    if(!map.has(date)) map.set(date, []);
-    map.get(date).push(s);
-  });
-  return Array.from(map.entries()).sort((a,b)=> b[0].localeCompare(a[0]));
-}
-
-function sortShots(arr){
-  const copy = [...arr];
-
-  if(sortMode === 'bean'){
-    copy.sort((a,b)=>{
-      const A = (a.bean||'').toString().trim().toLowerCase();
-      const B = (b.bean||'').toString().trim().toLowerCase();
-      if(A < B) return -1;
-      if(A > B) return 1;
-      return (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime());
-    });
-    return copy;
-  }
-
-  if(sortMode === 'oldest'){
-    copy.sort((a,b)=> (new Date(getShotDateISO(a)||0).getTime()) - (new Date(getShotDateISO(b)||0).getTime()));
-    return copy;
-  }
-
-  copy.sort((a,b)=> (new Date(getShotDateISO(b)||0).getTime()) - (new Date(getShotDateISO(a)||0).getTime()));
-  return copy;
-}
-
-function formatShotLine(s){
-  const m = s.brewMethod || 'Espresso';
-  if(m === 'Pour Over') return (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
-  if(m === 'Cold Brew') return (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
-  return 'grind ' + (s.grind||'') + ' · ' + (s.dose||'') + ' → ' + (s.yield||'') + ' · ' + (s.time||'');
-}
-
-function renderService(){
-  els.today.textContent = 'Today · ' + fmtDate(new Date());
-
-  if(range === 'thisWeek'){
-    const b = weekMonSunBounds(new Date());
-    els.rangeSubtitle.textContent = shortMD(b.start) + ' – ' + shortMD(b.end);
-  }else{
-    els.rangeSubtitle.textContent = '';
-  }
-
-  const list = els.shotList;
-  list.innerHTML = '';
-
-  let filtered = shots.filter(withinRange);
-  filtered = sortShots(filtered);
-
-  renderStats(filtered);
-
-  if(filtered.length === 0){
-    const empty = document.createElement('div');
-    empty.className = 'card';
-    empty.innerHTML = '<div class="metaMuted">No shots in this range.</div>';
-    list.appendChild(empty);
-    return;
-  }
-
-  const grouped = groupByDay(filtered);
-
-  grouped.forEach(([day, items])=>{
-    const h = document.createElement('div');
-    h.className = 'dayHeader';
-    h.textContent = prettyDayLabel(day) + ' · ' + items.length + ' shot' + (items.length>1?'s':'');
-    list.appendChild(h);
-
-    items.forEach(s=>{
-      const card = document.createElement('div');
-      card.className = 'card';
-
-      const bean = escapeHtml(s.bean || 'Untitled bean');
-      const type = escapeHtml(s.beanType || '—');
-      const roast = escapeHtml(s.roastProfile || '—');
-      const method = escapeHtml(s.brewMethod || 'Espresso');
-
-      const line = formatShotLine(s);
-      const stamp = fmtStamp(s.createdAt) || escapeHtml(s.date || day);
-
-      const res = s.result?.tag ? s.result.tag : '';
-      const resText = (res === 'Custom') ? (s.result.custom || 'Custom') : res;
-      const resDot = resultColor(resText);
-
-      const notePreview = (s.notes || '').trim().slice(0, 90);
-      const noteLine = notePreview
-        ? '<div class="metaMuted" style="margin-top:10px">“' + escapeHtml(notePreview) + ((s.notes||'').trim().length>90?'…':'') + '”</div>'
-        : '';
-
-      card.innerHTML =
-        '<div class="beanName">' + bean + '</div>' +
-        '<div class="metaMuted">' + type + ' · ' + roast + ' · ' + method + '</div>' +
-        '<div class="metaLine">' + escapeHtml(line) + '</div>' +
-        '<div class="metaMuted" style="margin-top:10px">' + escapeHtml(stamp) + '</div>' +
-        (resText ? ('<div class="badge"><span class="dot" style="background:' + resDot + '"></span>' + escapeHtml(resText) + '</div>') : '') +
-        noteLine +
-        '<div class="actions">' +
-          '<button class="btn btnSmall" data-action="edit" data-id="' + escapeHtml(s.id) + '">Edit</button>' +
-          '<button class="btn btnDanger btnSmall" data-action="delete" data-id="' + escapeHtml(s.id) + '">Delete</button>' +
-        '</div>';
-
-      card.querySelector('[data-action="edit"]').addEventListener('click', ()=> openEdit(s.id));
-      card.querySelector('[data-action="delete"]').addEventListener('click', ()=> quickDelete(s.id));
-
-      list.appendChild(card);
-    });
-  });
-}
-
-/* ---------------- Navigation ---------------- */
-function openNew(){
-  editingId = null;
-  view = 'new';
-  els.formTitle.textContent = 'New Shot';
-  els.formKicker.textContent = 'Fast log';
-  els.btnDelete.classList.add('hidden');
-
-  selectedDate = todayKey(new Date());
-  renderDateChips();
-
-  const last = shots.length ? shots[shots.length-1] : null;
-
-  els.bean.value = last?.bean || '';
-  addBeanToLibrary(els.bean.value);
-
-  applyBeanTypeToUI(last?.beanType || 'Arabica');
-  els.customBlend.value = last?.customBlend || '';
-
-  applyRoastToUI(last?.roastProfile || 'Medium');
-
-  els.brewMethod.value = last?.brewMethod || 'Espresso';
-  applyMethodLabels();
-
-  els.grind.value = last?.grind || '';
-  els.dose.value = last?.dose || '';
-  els.yield.value = last?.yield || '';
-  els.time.value = last?.time || '';
-
-  applyFlavorToUI(last?.flavorProfile || {});
-  applyResultToUI(last?.result || {});
-  els.notes.value = '';
-
-  render();
-  els.bean.focus();
-}
-
-function openEdit(id){
-  const s = shots.find(x=>x.id===id);
-  if(!s) return;
-
-  editingId = id;
-  view = 'new';
-  els.formTitle.textContent = 'Edit Shot';
-  els.formKicker.textContent = fmtStamp(s.createdAt) || '';
-  els.btnDelete.classList.remove('hidden');
-
-  selectedDate = (s.createdAt ? s.createdAt.slice(0,10) : (s.date || todayKey(new Date())));
-  renderDateChips();
-
-  els.bean.value = s.bean || '';
-  addBeanToLibrary(els.bean.value);
-
-  applyBeanTypeToUI(s.beanType || 'Arabica');
-  els.customBlend.value = s.customBlend || '';
-
-  applyRoastToUI(s.roastProfile || 'Medium');
-
-  els.brewMethod.value = s.brewMethod || 'Espresso';
-  applyMethodLabels();
-
-  els.grind.value = s.grind || '';
-  els.dose.value = s.dose || '';
-  els.yield.value = s.yield || '';
-  els.time.value = s.time || '';
-
-  applyFlavorToUI(s.flavorProfile || {});
-  applyResultToUI(s.result || {});
-  els.notes.value = s.notes || '';
-
-  render();
-}
-
-function backToService(){
-  view = 'service';
-  render();
-}
-
-/* ---------------- Save/delete ---------------- */
-function saveShot(){
-  const bean = (els.bean.value || '').trim();
-  if(!bean){
-    alert('Please enter a bean name.');
-    els.bean.focus();
-    return;
-  }
-  addBeanToLibrary(bean);
-
-  const beanType = currentBeanType || 'Arabica';
-  const customBlend = (beanType === 'Custom Blend') ? (els.customBlend.value || '').trim() : '';
-  const brewMethod = els.brewMethod.value || 'Espresso';
-  const roastProfile = currentRoast || 'Medium';
-
-  const tag = currentResultTag || null;
-  const custom = (tag === 'Custom') ? (els.resultCustom.value || '').trim() : '';
-  const notes = (els.notes.value || '').trim();
-
-  // Keep Yesterday shots as yesterday (stable)
-  const createdAtForNew = selectedDate + 'T12:00:00.000Z';
-
-  const shot = {
-    id: editingId || ('s_' + Math.random().toString(36).slice(2,10)),
-    createdAt: editingId
-      ? (shots.find(x=>x.id===editingId)?.createdAt || new Date().toISOString())
-      : createdAtForNew,
-    date: selectedDate,
-    bean: bean,
-    beanType: beanType,
-    customBlend: customBlend,
-    roastProfile: roastProfile,
-    brewMethod: brewMethod,
-    grind: (brewMethod==='Espresso') ? (els.grind.value || '').trim() : '',
-    dose: (els.dose.value || '').trim(),
-    yield: (els.yield.value || '').trim(),
-    time: (els.time.value || '').trim(),
-    flavorProfile: {
-      acidity: currentFlavor.acidity,
-      sweetness: currentFlavor.sweetness,
-      body: currentFlavor.body,
-      bitterness: currentFlavor.bitterness
-    },
-    result: { tag: tag, custom: custom },
-    notes: notes
-  };
-
-  try{
-    if(editingId) shots = shots.map(x=> x.id===editingId ? shot : x);
-    else shots.push(shot);
-    persist();
-    backToService();
-  }catch(e){
-    alert('Save failed — storage may be full. Try deleting old shots.');
-  }
-}
-
-function deleteCurrentShot(){
-  if(!editingId) return;
-  quickDelete(editingId, true);
-}
-
-function quickDelete(id, fromEdit){
-  fromEdit = !!fromEdit;
-  if(!confirm('Delete this shot?')) return;
-  shots = shots.filter(x=>x.id!==id);
-  persist();
-  if(fromEdit) backToService();
-  else renderService();
-}
-
-/* ---------------- Result color ---------------- */
-function resultColor(tag){
-  const t = (tag||'').toLowerCase();
-  if(t.includes('perfect')) return '#2e7d32';
-  if(t.includes('good')) return '#4caf50';
-  if(t.includes('too fast')) return '#fb8c00';
-  if(t.includes('runny')) return '#fb8c00';
-  if(t.includes('too tight')) return '#7b1fa2';
-  if(t.includes('bitter')) return '#6d4c41';
-  if(t.includes('sour')) return '#1565c0';
-  return '#999';
-}
-
-/* ---------------- Backup ---------------- */
-function exportData(){
-  const payload = { exportedAt: new Date().toISOString(), shots: shots, beanLibrary: beanLibrary };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'espresso-tracker-backup-' + todayKey(new Date()) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  URL.revokeObjectURL(url);
-  alert('Backup exported. Save it in Files / iCloud.');
-}
-
-function importData(evt){
-  const file = evt.target.files && evt.target.files[0];
-  evt.target.value = '';
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(reader.result);
-      if(!data || !Array.isArray(data.shots)){
-        alert('Invalid backup file.');
+    }
+
+    function getSelectedDateISO(){
+      const now = new Date();
+      if(dateSelect.value === "yesterday"){
+        const y = new Date(now);
+        y.setDate(now.getDate()-1);
+        return toISODateLocal(y);
+      }
+      return toISODateLocal(now);
+    }
+
+    function normalizeNumber(val){
+      if(val === "" || val === null || typeof val === "undefined") return null;
+      const n = Number(val);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function saveShot(){
+      const dateISO = getSelectedDateISO();
+      const roastProfile = chipGroupGetValue(roastChips) || "Medium";
+      const result = chipGroupGetValue(resultChips) || "Good";
+      const beanType = beanTypeSelect.value;
+
+      const shot = {
+        id: uid(),
+        date: dateISO,
+        ts: new Date().toISOString(),
+        bean: (beanInput.value || "").trim(),
+        beanType,
+        blend: beanType === "Custom Blend" ? (blendInput.value || "").trim() : "",
+        roastProfile,
+        brewMethod: brewSelect.value,
+        grind: normalizeNumber(grindInput.value),
+        dose: normalizeNumber(doseInput.value),
+        yield: normalizeNumber(yieldInput.value),
+        time: normalizeNumber(timeInput.value),
+        result,
+        notes: (notesInput.value || "").trim()
+      };
+
+      // Minimal validation (keep it forgiving)
+      if(!shot.bean){
+        alert("Please enter a bean name.");
+        beanInput.focus();
         return;
       }
 
-      const merge = confirm('Import backup:\n\nOK = Merge with existing\nCancel = Replace existing');
+      shots.push(shot);
+      saveShots();
+      clearDraft();
+      closeModal();
+      render();
+    }
 
-      if(merge){
-        const existingIds = new Set(shots.map(s=>s.id));
-        const incoming = data.shots.filter(s=>s && s.id && !existingIds.has(s.id));
-        shots = shots.concat(incoming);
+    function saveDraftFromInputs(){
+      const d = {
+        datePreset: dateSelect.value,
+        bean: beanInput.value,
+        beanType: beanTypeSelect.value,
+        blend: blendInput.value,
+        roastProfile: chipGroupGetValue(roastChips),
+        brewMethod: brewSelect.value,
+        result: chipGroupGetValue(resultChips),
+        grind: grindInput.value,
+        dose: doseInput.value,
+        yield: yieldInput.value,
+        time: timeInput.value,
+        notes: notesInput.value
+      };
+      saveDraft(d);
+    }
 
-        const beansIncoming = Array.isArray(data.beanLibrary) ? data.beanLibrary : [];
-        beanLibrary = Array.from(new Set(beanLibrary.concat(beansIncoming))).sort((a,b)=>a.localeCompare(b));
-      }else{
-        shots = data.shots;
-        beanLibrary = Array.isArray(data.beanLibrary) ? data.beanLibrary : [];
+    /**********************
+     * Filtering + Stats
+     **********************/
+    function inRange(shot, now){
+      const d = new Date(shot.date + "T00:00:00");
+      if(range === "today"){
+        return shot.date === toISODateLocal(now);
+      }
+      if(range === "week"){
+        const s = startOfWeekMonday(now);
+        const e = endOfWeekSunday(now);
+        return d >= s && d <= e;
+      }
+      if(range === "month"){
+        const s = startOfMonth(now);
+        const e = endOfMonth(now);
+        return d >= s && d <= e;
+      }
+      return true;
+    }
+
+    function sortShots(arr){
+      const copy = [...arr];
+      copy.sort((a,b)=>{
+        const ta = new Date(a.ts || (a.date+"T00:00:00")).getTime();
+        const tb = new Date(b.ts || (b.date+"T00:00:00")).getTime();
+        return sort === "newest" ? (tb - ta) : (ta - tb);
+      });
+      return copy;
+    }
+
+    function computeStats(filtered){
+      const total = filtered.length;
+      const beans = new Set(filtered.map(s => (s.bean || "").trim()).filter(Boolean));
+      const goodCount = filtered.filter(s => ["Good","Perfect"].includes(s.result)).length;
+      const goodPct = total ? Math.round((goodCount/total)*100) : 0;
+
+      const times = filtered.map(s => s.time).filter(n => typeof n === "number" && Number.isFinite(n));
+      const avgTime = times.length ? Math.round(times.reduce((a,b)=>a+b,0) / times.length) : null;
+
+      return { total, beansCount: beans.size, goodPct, avgTime };
+    }
+
+    function resultClass(result){
+      if(result === "Perfect") return "perfect";
+      if(result === "Good") return "good";
+      if(["Too Fast","Too Runny","Too Tight","Bitter","Sour"].includes(result)) return "bad";
+      return "";
+    }
+
+    /**********************
+     * Render
+     **********************/
+    function render(){
+      setTodayLabel();
+      setActiveSeg();
+
+      const now = new Date();
+      const filtered = shots.filter(s => inRange(s, now));
+      const sorted = sortShots(filtered);
+
+      const stats = computeStats(sorted);
+      statShots.textContent = stats.total;
+      statBeans.textContent = stats.beansCount;
+      statGood.textContent = `${stats.goodPct}%`;
+      statAvgTime.textContent = stats.avgTime === null ? "—" : `${stats.avgTime}s`;
+
+      shotList.innerHTML = "";
+
+      if(sorted.length === 0){
+        const div = document.createElement("div");
+        div.className = "empty";
+        div.textContent = "No shots in this range.";
+        shotList.appendChild(div);
+        return;
       }
 
-      persist();
-      renderService();
-      alert('Import complete.');
-    }catch(e){
-      alert('Import failed. File may be corrupted.');
-    }
-  };
-  reader.readAsText(file);
-}
+      sorted.forEach(s=>{
+        const item = document.createElement("div");
+        item.className = "shotItem";
 
-/* ---------------- Service worker (safe) ---------------- */
-function registerSW(){
-  try{
-    if(!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('./service-worker.js').then(reg=>{
-      // Try to update quietly
-      if(reg && reg.update) reg.update();
-    }).catch(()=>{ /* ignore */ });
-  }catch(e){ /* ignore */ }
-}
-</script>
+        const main = document.createElement("div");
+        main.className = "shotMain";
+
+        const top = document.createElement("div");
+        top.className = "shotTop";
+
+        const pillDate = document.createElement("span");
+        pillDate.className = "pill";
+        pillDate.textContent = s.date;
+
+        const pillResult = document.createElement("span");
+        pillResult.className = `pill result ${resultClass(s.result)}`;
+        pillResult.textContent = s.result || "—";
+
+        const pillRoast = document.createElement("span");
+        pillRoast.className = "pill";
+        pillRoast.textContent = s.roastProfile || "—";
+
+        top.appendChild(pillDate);
+        top.appendChild(pillResult);
+        top.appendChild(pillRoast);
+
+        const meta = document.createElement("div");
+        meta.className = "shotMeta";
+
+        const parts = [];
+        parts.push(`<strong>${escapeHtml(s.bean)}</strong>`);
+        if(s.beanType) parts.push(`${escapeHtml(s.beanType)}${s.beanType==="Custom Blend" && s.blend ? " ("+escapeHtml(s.blend)+")" : ""}`);
+        if(s.brewMethod) parts.push(`${escapeHtml(s.brewMethod)}`);
+
+        const recipe = [];
+        if(typeof s.grind === "number") recipe.push(`Grind ${s.grind}`);
+        if(typeof s.dose === "number") recipe.push(`Dose ${s.dose}g`);
+        if(typeof s.yield === "number") recipe.push(`Yield ${s.yield}ml`);
+        if(typeof s.time === "number") recipe.push(`Time ${s.time}s`);
+        if(recipe.length) parts.push(recipe.join(" · "));
+
+        if(s.notes) parts.push(`📝 ${escapeHtml(s.notes)}`);
+
+        meta.innerHTML = parts.join("<br>");
+
+        main.appendChild(top);
+        main.appendChild(meta);
+
+        const actions = document.createElement("div");
+        actions.className = "shotActions";
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "iconBtn";
+        delBtn.title = "Delete";
+        delBtn.textContent = "×";
+        delBtn.addEventListener("click", ()=>{
+          if(confirm("Delete this shot?")){
+            shots = shots.filter(x => x.id !== s.id);
+            saveShots();
+            render();
+          }
+        });
+
+        actions.appendChild(delBtn);
+
+        item.appendChild(main);
+        item.appendChild(actions);
+
+        shotList.appendChild(item);
+      });
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    /**********************
+     * Events
+     **********************/
+    newShotBtn.addEventListener("click", openModal);
+    closeModalBtn.addEventListener("click", closeModal);
+    modalOverlay.addEventListener("click", (e)=>{
+      if(e.target === modalOverlay) closeModal();
+    });
+
+    // Range toggle
+    rangeSeg.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-range]");
+      if(!btn) return;
+      range = btn.dataset.range;
+      saveUI();
+      render();
+    });
+
+    sortSelect.addEventListener("change", ()=>{
+      sort = sortSelect.value;
+      saveUI();
+      render();
+    });
+
+    // Chips selection (roast + result)
+    roastChips.addEventListener("click", (e)=>{
+      const chip = e.target.closest(".chip");
+      if(!chip) return;
+      chipGroupSetActive(roastChips, chip.dataset.value);
+      saveDraftFromInputs();
+    });
+    resultChips.addEventListener("click", (e)=>{
+      const chip = e.target.closest(".chip");
+      if(!chip) return;
+      chipGroupSetActive(resultChips, chip.dataset.value);
+      saveDraftFromInputs();
+    });
+
+    beanTypeSelect.addEventListener("change", ()=>{
+      toggleBlend(beanTypeSelect.value);
+      saveDraftFromInputs();
+    });
+
+    // Save draft on input changes (so you don’t lose mid-entry)
+    [
+      dateSelect, beanInput, blendInput, brewSelect,
+      grindInput, doseInput, yieldInput, timeInput, notesInput
+    ].forEach(el=>{
+      el.addEventListener("input", saveDraftFromInputs);
+      el.addEventListener("change", saveDraftFromInputs);
+    });
+
+    clearDraftBtn.addEventListener("click", ()=>{
+      if(confirm("Clear draft fields?")){
+        clearDraft();
+        // reset modal fields quickly
+        dateSelect.value = "today";
+        beanInput.value = "";
+        beanTypeSelect.value = "Arabica";
+        toggleBlend("Arabica");
+        chipGroupSetActive(roastChips, "Medium");
+        brewSelect.value = "Espresso";
+        chipGroupSetActive(resultChips, "Good");
+        grindInput.value = "";
+        doseInput.value = "";
+        yieldInput.value = "";
+        timeInput.value = "";
+        notesInput.value = "";
+      }
+    });
+
+    saveShotBtn.addEventListener("click", saveShot);
+
+    // Export / Import
+    exportBtn.addEventListener("click", ()=>{
+      const fname = `espresso-shots-${toISODateLocal(new Date())}.json`;
+      download(fname, JSON.stringify(shots, null, 2));
+    });
+
+    importBtn.addEventListener("click", ()=>{
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", async ()=>{
+      const file = fileInput.files?.[0];
+      if(!file) return;
+
+      const text = await file.text();
+      const parsed = safeParseJSON(text);
+      if(!parsed.ok){
+        alert("Invalid JSON file.");
+        fileInput.value = "";
+        return;
+      }
+
+      let incoming = null;
+      if(Array.isArray(parsed.data)) incoming = parsed.data;
+      else if(parsed.data && Array.isArray(parsed.data.shots)) incoming = parsed.data.shots;
+
+      if(!incoming){
+        alert("JSON must be an array of shots (or { shots: [...] }).");
+        fileInput.value = "";
+        return;
+      }
+
+      // Basic normalization + merge strategy:
+      // Replace all (cleanest for you, since you do backups)
+      if(!confirm(`Import will REPLACE current data with ${incoming.length} shots. Continue?`)){
+        fileInput.value = "";
+        return;
+      }
+
+      shots = incoming.map(s => ({
+        id: s.id || uid(),
+        date: s.date || toISODateLocal(new Date()),
+        ts: s.ts || new Date().toISOString(),
+        bean: (s.bean || "").trim(),
+        beanType: s.beanType || "Arabica",
+        blend: s.blend || "",
+        roastProfile: s.roastProfile || s.roast || "Medium",
+        brewMethod: s.brewMethod || "Espresso",
+        grind: (typeof s.grind === "number") ? s.grind : normalizeNumber(s.grind),
+        dose: (typeof s.dose === "number") ? s.dose : normalizeNumber(s.dose),
+        yield: (typeof s.yield === "number") ? s.yield : normalizeNumber(s.yield),
+        time: (typeof s.time === "number") ? s.time : normalizeNumber(s.time),
+        result: s.result || "Good",
+        notes: s.notes || ""
+      }));
+
+      saveShots();
+      render();
+      fileInput.value = "";
+      alert("Import complete.");
+    });
+
+    // Close modal on ESC
+    window.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape" && modalOverlay.classList.contains("show")) closeModal();
+    });
+
+    // Initial
+    render();
+  </script>
 </body>
 </html>
